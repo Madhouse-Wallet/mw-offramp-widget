@@ -39,6 +39,7 @@ export interface OrderState {
   quote?: QuoteResponse
   sourceToken?: string   // e.g. "usdc", "usdt", "eth"
   sourceNetwork?: string // e.g. "base", "ethereum", "polygon"
+  userEmail?: string
 
   // Set by RecipientStep
   recipientId?: number
@@ -165,6 +166,7 @@ export interface CreateTransferPayload {
   amount: number
   recipientId: number
   customer_uuid: string
+  customer_email: string
   source_token?: string
   source_network?: string
 }
@@ -174,4 +176,17 @@ export interface TransferResponse {
   deposit_address: string
   amount: string
   currency: string
+}
+
+// ─── Transfer status ───────────────────────────────────────────────────────────
+
+export interface TransferStatusResponse {
+  transfer_id: string
+  status: string
+  status_label: string
+  amount: number
+  currency: string | null
+  created_at: string
+  updated_at: string
+  terminal: boolean
 }

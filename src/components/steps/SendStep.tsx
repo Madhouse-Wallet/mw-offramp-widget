@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
+import QRCode from 'react-qr-code'
 import { Button } from '../ui/Button'
 import type { OrderState } from '../../types'
 
 interface SendStepProps {
   orderState: Partial<OrderState>
   onSuccess?: (transferId: string) => void
+  onBack?: () => void
 }
 
 function CopyIcon({ copied }: { copied: boolean }) {
@@ -33,10 +35,11 @@ function CopyIcon({ copied }: { copied: boolean }) {
   )
 }
 
-export function SendStep({ orderState, onSuccess }: SendStepProps) {
+export function SendStep({ orderState, onSuccess, onBack }: SendStepProps) {
   const [copiedAddress, setCopiedAddress] = useState(false)
   const [copiedAmount, setCopiedAmount] = useState(false)
   const [copiedTxId, setCopiedTxId] = useState(false)
+  const [done, setDone] = useState(false)
 
   const {
     transferId,
@@ -47,7 +50,6 @@ export function SendStep({ orderState, onSuccess }: SendStepProps) {
     sourceNetwork = 'base',
   } = orderState
 
-  // Human-readable network label for the warning and address label
   const networkLabel =
     sourceNetwork === 'arbitrum' ? 'Arbitrum' :
     sourceNetwork === 'base' ? 'Base' :
@@ -65,6 +67,65 @@ export function SendStep({ orderState, onSuccess }: SendStepProps) {
     })
   }
 
+  // ── Success screen (shown after user clicks "I've sent the funds") ────────────
+  if (done && transferId) {
+    return (
+      <div className="space-y-5">
+        {/* Success header */}
+        <div className="text-center">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+            <svg className="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900">Transfer Submitted</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Once we detect your deposit, your payout will be processed automatically.
+          </p>
+        </div>
+
+        {/* Save transfer ID callout */}
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <p className="mb-1 text-sm font-semibold text-blue-800">Save your Transfer ID</p>
+          <p className="mb-3 text-xs text-blue-700">
+            Use this ID to monitor your transaction status. You can check it at any time on the main screen.
+          </p>
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2">
+            <p className="flex-1 truncate font-mono text-xs text-gray-800">{transferId}</p>
+            <button
+              type="button"
+              onClick={() => copyToClipboard(transferId, setCopiedTxId)}
+              className="group flex shrink-0 items-center gap-1 rounded px-2 py-1 text-xs text-blue-500 transition-colors hover:bg-blue-50 hover:text-blue-700"
+            >
+              <CopyIcon copied={copiedTxId} />
+              <span>{copiedTxId ? 'Copied!' : 'Copy'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Info */}
+        <div className="flex gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+          <svg className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-xs text-gray-600">
+            Transfers typically complete within a few hours. Paste your Transfer ID into the
+            &quot;Check a previous transfer&quot; box on the main screen to see the latest status.
+          </p>
+        </div>
+
+        <Button
+          variant="primary"
+          fullWidth
+          onClick={() => onSuccess && onSuccess(transferId)}
+        >
+          Start New Transfer
+        </Button>
+      </div>
+    )
+  }
+
+  // ── Deposit instructions screen ───────────────────────────────────────────────
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -114,16 +175,27 @@ export function SendStep({ orderState, onSuccess }: SendStepProps) {
 
       {/* Deposit address */}
       {depositAddress ? (
-        <div className="rounded-xl border border-orange-300 bg-orange-50 p-4">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
             Deposit address ({networkLabel} network)
           </p>
-          <div className="flex items-start gap-3">
-            <p className="flex-1 break-all font-mono text-sm text-gray-900">{depositAddress}</p>
+          {/* QR code */}
+          <div className="flex justify-center rounded-xl border border-gray-200 bg-white p-5">
+            <QRCode
+              value={depositAddress}
+              size={180}
+              bgColor="#ffffff"
+              fgColor="#111827"
+              level="M"
+            />
+          </div>
+          {/* Address + copy */}
+          <div className="flex items-center gap-2 rounded-xl border border-orange-300 bg-orange-50 px-4 py-3">
+            <span className="flex-1 break-all font-mono text-xs text-gray-900">{depositAddress}</span>
             <button
               type="button"
               onClick={() => copyToClipboard(depositAddress, setCopiedAddress)}
-              className="group mt-0.5 flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-orange-100 hover:text-gray-900"
+              className="group flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-orange-600 transition-colors hover:bg-orange-100 hover:text-orange-800"
             >
               <CopyIcon copied={copiedAddress} />
               <span>{copiedAddress ? 'Copied!' : 'Copy'}</span>
@@ -133,7 +205,7 @@ export function SendStep({ orderState, onSuccess }: SendStepProps) {
       ) : (
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
           <p className="text-sm text-gray-500">
-            Deposit address will be shown here. If you don't see it, please contact support with
+            Deposit address will be shown here. If you don&apos;t see it, please contact support with
             your transfer ID.
           </p>
         </div>
@@ -176,15 +248,21 @@ export function SendStep({ orderState, onSuccess }: SendStepProps) {
         </div>
       )}
 
-      {/* Done button */}
-      <Button
-        variant="primary"
-        fullWidth
-        onClick={() => onSuccess && transferId ? onSuccess(transferId) : undefined}
-      >
-        Done
-      </Button>
-
+      {/* Actions */}
+      <div className="flex gap-3">
+        {onBack && (
+          <Button variant="secondary" onClick={onBack} className="flex-1">
+            Back
+          </Button>
+        )}
+        <Button
+          variant="primary"
+          onClick={() => setDone(true)}
+          className="flex-1"
+        >
+          I&apos;ve Sent the Funds
+        </Button>
+      </div>
     </div>
   )
 }

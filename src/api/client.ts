@@ -5,9 +5,11 @@ import type {
   CreateRecipientPayload,
   CreateTransferPayload,
   TransferResponse,
+  TransferStatusResponse,
   DepositOptionsResponse,
   DepositOption,
 } from '../types'
+import { encryptPayload, decryptPayload } from '../lib/payload-crypto'
 
 // Allowed currencies — must match server-side ALLOWED_CURRENCIES
 const ALLOWED_CURRENCIES = new Set([
@@ -19,10 +21,6 @@ const ALLOWED_CURRENCIES = new Set([
 ])
 
 // ─── Widget JWT token cache ───────────────────────────────────────────────────
-// A short-lived JWT is provisioned from /api/auth/widget-token and attached to
-// every proxy request. This ensures only the legitimate widget frontend (served
-// from the same Next.js origin) can reach the proxy — external callers cannot
-// obtain a valid token. The token is cached in memory for its lifetime.
 
 interface TokenCache {
   token: string
@@ -33,11 +31,9 @@ let _tokenCache: TokenCache | null = null
 
 async function getWidgetToken(): Promise<string> {
   const now = Date.now()
-  // Refresh 60 seconds before expiry to avoid edge-case races
   if (_tokenCache && _tokenCache.expiresAt - 60_000 > now) {
     return _tokenCache.token
   }
-
   const res = await fetch('/api/auth/widget-token', { method: 'POST' })
   if (!res.ok) {
     throw Object.assign(new Error('Failed to obtain widget token'), { status: res.status })
@@ -50,14 +46,33 @@ async function getWidgetToken(): Promise<string> {
   return data.token
 }
 
+// ─── Encryption key cache ─────────────────────────────────────────────────────
+// The AES-256-GCM key is fetched once from /api/auth/widget-key and cached for
+// the session. The server vends it as base64url; we decode to Uint8Array here.
+
+let _encryptKey: Uint8Array | null = null
+
+async function getEncryptKey(): Promise<Uint8Array> {
+  if (_encryptKey) return _encryptKey
+  const res = await fetch('/api/auth/widget-key')
+  if (!res.ok) {
+    throw Object.assign(new Error('Failed to obtain encryption key'), { status: res.status })
+  }
+  const { key } = (await res.json()) as { key: string }
+  // Decode base64url → Uint8Array
+  const binary = atob(key.replace(/-/g, '+').replace(/_/g, '/'))
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  _encryptKey = bytes
+  return _encryptKey
+}
+
 // ─── Sanitization helpers ─────────────────────────────────────────────────────
 
-// Sanitize a plain string value: strip null bytes and limit length
 function sanitizeString(value: string, maxLen = 500): string {
   return value.replace(/\x00/g, '').slice(0, maxLen)
 }
 
-// Sanitize all string values in a details object
 function sanitizeDetails(details: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {}
   for (const [k, v] of Object.entries(details)) {
@@ -68,7 +83,6 @@ function sanitizeDetails(details: Record<string, string>): Record<string, string
   return out
 }
 
-// Validate that a recipient ID is a safe positive integer before interpolating into a URL path
 function validateRecipientId(id: number): void {
   if (!Number.isInteger(id) || id <= 0 || id > 2_147_483_647) {
     throw new Error('Invalid recipient ID')
@@ -81,10 +95,19 @@ async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const token = await getWidgetToken()
+  const [token, encryptKey] = await Promise.all([getWidgetToken(), getEncryptKey()])
+
+  // Encrypt request body if present
+  let body: string | undefined
+  if (options.body != null) {
+    const plainData = JSON.parse(options.body as string)
+    const jwe = await encryptPayload(plainData, encryptKey)
+    body = JSON.stringify({ jwe })
+  }
 
   const res = await fetch(path, {
     ...options,
+    body,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
@@ -94,20 +117,22 @@ async function apiFetch<T>(
 
   const responseText = await res.text()
 
-  let body: unknown
+  // Parse outer envelope
+  let envelope: unknown
   try {
-    body = JSON.parse(responseText)
+    envelope = JSON.parse(responseText)
   } catch {
-    body = responseText
+    envelope = responseText
   }
 
   if (!res.ok) {
-    const errBody = body as Record<string, unknown>
+    // Error responses from the proxy are plain JSON (not encrypted)
+    const errBody = envelope as Record<string, unknown>
     const message =
       typeof errBody?.error === 'string'
         ? sanitizeString(errBody.error, 300)
-        : typeof body === 'string'
-          ? sanitizeString(body, 300)
+        : typeof envelope === 'string'
+          ? sanitizeString(envelope, 300)
           : `Request failed with status ${res.status}`
     const err = new Error(message)
     ;(err as Error & { status: number }).status = res.status
@@ -117,10 +142,24 @@ async function apiFetch<T>(
     throw err
   }
 
-  return body as T
+  // Decrypt the JWE response envelope
+  const jwe = (envelope as Record<string, unknown>)?.jwe
+  if (typeof jwe !== 'string') {
+    throw new Error('Response is not encrypted')
+  }
+  return decryptPayload<T>(jwe, encryptKey)
 }
 
 // ─── Public API functions ─────────────────────────────────────────────────────
+
+export async function getTransferStatus(transferId: string): Promise<TransferStatusResponse> {
+  if (!/^[0-9a-f]{24}$/i.test(transferId)) {
+    throw new Error('Invalid transfer ID format')
+  }
+  return apiFetch<TransferStatusResponse>(
+    `/api/proxy/payouts/transfer-status/${encodeURIComponent(transferId)}`,
+  )
+}
 
 export async function getDepositOptions(): Promise<DepositOption[]> {
   const resp = await apiFetch<DepositOptionsResponse>('/api/proxy/payouts/deposit-options')
@@ -198,6 +237,13 @@ export async function deleteRecipient(
   })
 }
 
+export async function cancelTransfer(transferId?: string): Promise<void> {
+  await apiFetch<{ ok: boolean }>('/api/proxy/payouts/transfer/cancel', {
+    method: 'POST',
+    body: JSON.stringify(transferId ? { transfer_id: transferId } : {}),
+  }).catch(() => {/* best-effort — never block the UI */})
+}
+
 export async function createTransfer(
   payload: CreateTransferPayload,
 ): Promise<TransferResponse> {
@@ -205,7 +251,6 @@ export async function createTransfer(
     throw new Error('Invalid transfer amount')
   }
   validateRecipientId(payload.recipientId)
-  // quote_id and customer_uuid are server-generated UUIDs; validate they look like UUIDs
   const uuidRe = /^[0-9a-f-]{32,36}$/i
   if (!uuidRe.test(payload.quote_id)) {
     throw new Error('Invalid quote ID')

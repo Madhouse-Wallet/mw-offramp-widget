@@ -3,8 +3,8 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
 import { Spinner } from '../ui/Spinner'
-import { getQuote, getDepositOptions } from '../../api/client'
-import type { OrderState, QuoteResponse, DepositOption } from '../../types'
+import { getQuote, getDepositOptions, getTransferStatus } from '../../api/client'
+import type { OrderState, QuoteResponse, DepositOption, TransferStatusResponse } from '../../types'
 
 const CURRENCIES = [
   { value: 'AED', label: 'AED — UAE Dirham' },
@@ -76,6 +76,8 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
   const [quote, setQuote] = useState<QuoteResponse | null>(
     initialState.quote ?? null,
   )
+  const [email, setEmail] = useState(initialState.userEmail ?? '')
+  const [emailError, setEmailError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [amountError, setAmountError] = useState<string | null>(null)
@@ -83,6 +85,12 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
   // Deposit token/network selection
   const [depositOptions, setDepositOptions] = useState<DepositOption[]>([])
   const [selectedOption, setSelectedOption] = useState<DepositOption | null>(null)
+
+  // Transfer status lookup
+  const [lookupId, setLookupId] = useState('')
+  const [lookupResult, setLookupResult] = useState<TransferStatusResponse | null>(null)
+  const [lookupError, setLookupError] = useState<string | null>(null)
+  const [lookupLoading, setLookupLoading] = useState(false)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -143,6 +151,27 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
     }
   }, [amountStr, currency, fetchQuote])
 
+  async function handleLookup() {
+    const id = lookupId.trim()
+    if (!id) return
+    setLookupLoading(true)
+    setLookupResult(null)
+    setLookupError(null)
+    try {
+      const result = await getTransferStatus(id)
+      setLookupResult(result)
+    } catch (err) {
+      const e = err as Error & { status?: number }
+      if (e.status === 404) {
+        setLookupError('Transfer not found. Please check your Transfer ID and try again.')
+      } else {
+        setLookupError(e.message || 'Failed to look up transfer status.')
+      }
+    } finally {
+      setLookupLoading(false)
+    }
+  }
+
   function validateAmount(): boolean {
     const usd = parseFloat(amountStr)
     if (!amountStr || isNaN(usd) || usd <= 0) {
@@ -162,8 +191,23 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
     return true
   }
 
+  function validateEmail(): boolean {
+    const trimmed = email.trim()
+    if (!trimmed) {
+      setEmailError('Email is required')
+      return false
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError('Enter a valid email address')
+      return false
+    }
+    setEmailError(null)
+    return true
+  }
+
   function handleContinue() {
     if (!validateAmount()) return
+    if (!validateEmail()) return
     if (!quote) return
     const usd = parseFloat(amountStr)
     onNext({
@@ -173,6 +217,7 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
       quote,
       sourceToken: selectedOption?.token ?? 'usdc',
       sourceNetwork: selectedOption?.network ?? 'base',
+      userEmail: email.trim(),
     })
   }
 
@@ -221,6 +266,20 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
           required
         />
       </div>
+
+      {/* Email */}
+      <Input
+        label="Your Email"
+        type="email"
+        placeholder="you@example.com"
+        value={email}
+        onChange={(e) => {
+          setEmail(e.target.value)
+          setEmailError(null)
+        }}
+        error={emailError ?? undefined}
+        required
+      />
 
       {/* Token / network picker */}
       {depositOptions.length > 0 && (
@@ -285,8 +344,9 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
           <div className="flex items-center justify-between px-4 py-2.5 text-sm">
             <span className="text-gray-500">Exchange rate</span>
             <span className="font-medium text-gray-900">
-              1 USD ≈ {quote.bridgeRate} EUR ≈{' '}
-              {floorTwo(quote.quote.rate)} {quote.quote.target}
+              {quote.quote.target === 'EUR'
+                ? `1 USD ≈ ${quote.bridgeRate} EUR`
+                : `1 USD ≈ ${floorTwo(parseFloat(quote.bridgeRate) * quote.quote.rate)} ${quote.quote.target}`}
             </span>
           </div>
 
@@ -328,6 +388,72 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
       >
         Continue
       </Button>
+
+      {/* Transfer status lookup */}
+      <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <p className="mb-2 text-sm font-medium text-gray-700">Check a previous transfer</p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Enter Transfer ID"
+            value={lookupId}
+            onChange={(e) => {
+              setLookupId(e.target.value)
+              setLookupResult(null)
+              setLookupError(null)
+            }}
+            onKeyDown={(e) => { if (e.key === 'Enter') void handleLookup() }}
+            className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+          />
+          <button
+            type="button"
+            onClick={() => void handleLookup()}
+            disabled={!lookupId.trim() || lookupLoading}
+            className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50"
+          >
+            {lookupLoading ? '…' : 'Check'}
+          </button>
+        </div>
+
+        {lookupError && (
+          <p className="mt-2 text-xs text-red-600">{lookupError}</p>
+        )}
+
+        {lookupResult && (
+          <div className="mt-3 space-y-1 rounded-lg border border-gray-200 bg-white p-3 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">Status</span>
+              <span className={`font-semibold ${
+                lookupResult.status === 'completed' ? 'text-green-600' :
+                lookupResult.status === 'failed' ? 'text-red-600' :
+                'text-orange-600'
+              }`}>
+                {lookupResult.status_label}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">Amount</span>
+              <span className="font-medium text-gray-900">
+                ${(Math.floor(lookupResult.amount * 100) / 100).toFixed(2)} USD
+              </span>
+            </div>
+            {lookupResult.currency && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Currency</span>
+                <span className="font-medium text-gray-900">{lookupResult.currency}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">Created</span>
+              <span className="font-medium text-gray-900">
+                {new Date(lookupResult.created_at).toLocaleDateString(undefined, {
+                  month: 'short', day: 'numeric', year: 'numeric',
+                })}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

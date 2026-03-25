@@ -59,6 +59,7 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
     recipientType,
     sourceToken,
     sourceNetwork,
+    userEmail,
   } = orderState
 
   const txFee = quote?.txFee ?? calcTxFee(amount)
@@ -81,6 +82,7 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
         amount,
         recipientId,
         customer_uuid: customerUuid,
+        customer_email: userEmail ?? '',
         ...(sourceToken ? { source_token: sourceToken } : {}),
         ...(sourceNetwork ? { source_network: sourceNetwork } : {}),
       })
@@ -127,7 +129,9 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
           <>
             <SummaryRow
               label="Exchange rate"
-              value={`1 USD ≈ ${floorTwo(quote.quote.rate)} ${currency}`}
+              value={currency === 'EUR'
+                ? `1 USD ≈ ${quote.bridgeRate} EUR`
+                : `1 USD ≈ ${floorTwo(parseFloat(quote.bridgeRate) * quote.quote.rate)} ${currency}`}
             />
             {quote.quote.fee?.total != null && (
               <SummaryRow
