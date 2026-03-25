@@ -8,20 +8,21 @@ import { deleteRecipient, cancelTransfer } from '../api/client'
 import type { Step, OrderState, WidgetProps } from '../types'
 
 const SESSION_KEY = 'mw_widget_state'
+const TRANSFER_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
 
-function saveSession(step: Step, orderState: Partial<OrderState>) {
+function saveSession(step: Step, orderState: Partial<OrderState>, transferCreatedAt?: number) {
   try {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ step, orderState }))
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ step, orderState, transferCreatedAt }))
   } catch {
     // sessionStorage unavailable (e.g. private browsing restrictions) — silently ignore
   }
 }
 
-function loadSession(): { step: Step; orderState: Partial<OrderState> } | null {
+function loadSession(): { step: Step; orderState: Partial<OrderState>; transferCreatedAt?: number } | null {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY)
     if (!raw) return null
-    const parsed = JSON.parse(raw) as { step: Step; orderState: Partial<OrderState> }
+    const parsed = JSON.parse(raw) as { step: Step; orderState: Partial<OrderState>; transferCreatedAt?: number }
     const validSteps: Step[] = ['amount', 'recipient', 'confirm', 'send']
     if (!validSteps.includes(parsed.step)) return null
     return parsed
@@ -41,40 +42,63 @@ function clearSession() {
 export function OfframpWidget({ onSuccess, onError }: WidgetProps) {
   const saved = loadSession()
 
-  // If the session was saved mid-send (transferId exists), cancel the stale transfer
-  // on mount and drop back to confirm so the user gets a fresh deposit address.
-  const savedTransferIdToCancel =
+  // If the session was saved mid-send (transferId exists), determine whether the
+  // transfer has expired (> 5 min old) or is still fresh enough to recover.
+  const savedTransferId =
     saved?.step === 'send' && saved?.orderState?.transferId
       ? saved.orderState.transferId
       : null
 
-  const initialStep: Step =
-    savedTransferIdToCancel ? 'confirm' : (saved?.step ?? 'amount')
-  const initialState: Partial<OrderState> = savedTransferIdToCancel
-    ? {
-        ...saved!.orderState,
-        transferId: undefined,
-        depositAddress: undefined,
-        depositAmount: undefined,
-        depositCurrency: undefined,
-      }
-    : (saved?.orderState ?? {})
+  const transferExpired =
+    savedTransferId !== null &&
+    saved?.transferCreatedAt !== undefined &&
+    Date.now() - saved.transferCreatedAt > TRANSFER_TIMEOUT_MS
+
+  // Expired transfer: cancel it and reset to step 1.
+  // Fresh transfer (no timestamp or < 5 min): drop back to confirm for a fresh deposit address.
+  const savedTransferIdToCancel = savedTransferId
+
+  const initialStep: Step = (() => {
+    if (!savedTransferId) return saved?.step ?? 'amount'
+    if (transferExpired) return 'amount'
+    return 'confirm'
+  })()
+
+  const initialState: Partial<OrderState> = (() => {
+    if (!savedTransferId) return saved?.orderState ?? {}
+    if (transferExpired) return {}
+    return {
+      ...saved!.orderState,
+      transferId: undefined,
+      depositAddress: undefined,
+      depositAmount: undefined,
+      depositCurrency: undefined,
+    }
+  })()
 
   const [step, setStep] = useState<Step>(initialStep)
   const [orderState, setOrderState] = useState<Partial<OrderState>>(initialState)
   const [sessionExpired, setSessionExpired] = useState(false)
+  const [transferCreatedAt, setTransferCreatedAt] = useState<number | undefined>(
+    // Preserve the original timestamp if restoring a non-expired send session
+    !transferExpired && savedTransferId ? saved?.transferCreatedAt : undefined,
+  )
 
   // Cancel any stale transfer from a previous session (user closed tab mid-send)
   useEffect(() => {
     if (savedTransferIdToCancel) {
       cancelTransfer(savedTransferIdToCancel)
     }
+    // If the transfer expired, also clear the session so refresh lands at step 1
+    if (transferExpired) {
+      clearSession()
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist step + orderState to sessionStorage whenever either changes
+  // Persist step + orderState (plus transferCreatedAt) to sessionStorage whenever state changes
   useEffect(() => {
-    saveSession(step, orderState)
-  }, [step, orderState])
+    saveSession(step, orderState, transferCreatedAt)
+  }, [step, orderState, transferCreatedAt])
 
   // Cancel any pending transfer if the user closes the tab / navigates away
   // while on the send step (i.e. they were shown a deposit address but never sent).
@@ -100,6 +124,7 @@ export function OfframpWidget({ onSuccess, onError }: WidgetProps) {
     if (state.transferId) cancelTransfer(state.transferId)
     cleanupRecipient(state)
     clearSession()
+    setTransferCreatedAt(undefined)
     setOrderState({})
     setStep('amount')
     setSessionExpired(true)
@@ -122,6 +147,7 @@ export function OfframpWidget({ onSuccess, onError }: WidgetProps) {
 
   function handleConfirmNext(data: Partial<OrderState>) {
     mergeState(data)
+    setTransferCreatedAt(Date.now())
     setStep('send')
   }
 
@@ -144,6 +170,7 @@ export function OfframpWidget({ onSuccess, onError }: WidgetProps) {
     if (orderState.transferId) {
       cancelTransfer(orderState.transferId)
     }
+    setTransferCreatedAt(undefined)
     setOrderState((prev) => ({
       ...prev,
       transferId: undefined,
@@ -154,10 +181,24 @@ export function OfframpWidget({ onSuccess, onError }: WidgetProps) {
     setStep('confirm')
   }
 
+  function handleSendTimeout() {
+    // User idled on the send step for 5 minutes without sending — cancel the
+    // transfer and reset to the beginning so they start fresh.
+    if (orderState.transferId) {
+      cancelTransfer(orderState.transferId)
+    }
+    clearSession()
+    cleanupRecipient(orderState)
+    setTransferCreatedAt(undefined)
+    setOrderState({})
+    setStep('amount')
+  }
+
   function handleSuccess(transferId: string) {
     // Transaction finalized — clear session, delete recipient, reset to step 1
     clearSession()
     cleanupRecipient(orderState)
+    setTransferCreatedAt(undefined)
     setOrderState({})
     setStep('amount')
     if (onSuccess) onSuccess(transferId)
@@ -218,6 +259,7 @@ export function OfframpWidget({ onSuccess, onError }: WidgetProps) {
               orderState={orderState}
               onSuccess={handleSuccess}
               onBack={handleBackToConfirm}
+              onTimeout={handleSendTimeout}
             />
           )}
         </div>

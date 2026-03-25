@@ -150,6 +150,54 @@ async function apiFetch<T>(
   return decryptPayload<T>(jwe, encryptKey)
 }
 
+// ─── reCAPTCHA v3 helpers ─────────────────────────────────────────────────────
+
+declare global {
+  interface Window {
+    grecaptcha?: {
+      ready: (cb: () => void) => void
+      execute: (siteKey: string, opts: { action: string }) => Promise<string>
+    }
+  }
+}
+
+/**
+ * Executes reCAPTCHA v3 and returns the token, or null if reCAPTCHA is not
+ * configured (NEXT_PUBLIC_RECAPTCHA_SITE_KEY unset).
+ */
+export async function executeCaptcha(action: string): Promise<string | null> {
+  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+  if (!siteKey || !window.grecaptcha) return null
+  return new Promise((resolve) => {
+    window.grecaptcha!.ready(async () => {
+      try {
+        const token = await window.grecaptcha!.execute(siteKey, { action })
+        resolve(token)
+      } catch {
+        resolve(null)
+      }
+    })
+  })
+}
+
+/**
+ * Verifies a reCAPTCHA v3 token server-side.
+ * Returns true if verification passes or if reCAPTCHA is not configured.
+ * Throws if the server rejects the token.
+ */
+export async function verifyCaptchaToken(token: string | null): Promise<void> {
+  if (!token) return // reCAPTCHA not configured — skip
+  const res = await fetch('/api/auth/verify-captcha', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  })
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(body.error ?? 'Captcha verification failed')
+  }
+}
+
 // ─── Public API functions ─────────────────────────────────────────────────────
 
 export async function getTransferStatus(transferId: string): Promise<TransferStatusResponse> {

@@ -3,7 +3,7 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
 import { Spinner } from '../ui/Spinner'
-import { getQuote, getDepositOptions, getTransferStatus } from '../../api/client'
+import { getQuote, getDepositOptions, getTransferStatus, executeCaptcha, verifyCaptchaToken } from '../../api/client'
 import type { OrderState, QuoteResponse, DepositOption, TransferStatusResponse } from '../../types'
 
 const CURRENCIES = [
@@ -205,10 +205,22 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
     return true
   }
 
-  function handleContinue() {
+  async function handleContinue() {
     if (!validateAmount()) return
     if (!validateEmail()) return
     if (!quote) return
+
+    setLoading(true)
+    try {
+      const captchaToken = await executeCaptcha('offramp_continue')
+      await verifyCaptchaToken(captchaToken)
+    } catch (err) {
+      setError((err as Error).message || 'Security check failed. Please try again.')
+      setLoading(false)
+      return
+    }
+    setLoading(false)
+
     const usd = parseFloat(amountStr)
     onNext({
       amount: usd,
@@ -382,7 +394,7 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
       <Button
         variant="primary"
         fullWidth
-        onClick={handleContinue}
+        onClick={() => { void handleContinue() }}
         disabled={!canContinue}
         loading={loading}
       >

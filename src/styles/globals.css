@@ -19,6 +19,12 @@ button, a, input, select, textarea {
     color 0.05s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
+/* Move reCAPTCHA v3 badge to bottom-left so it doesn't overlap the WhatsApp FAB */
+.grecaptcha-badge {
+  left: 14px !important;
+  right: auto !important;
+}
+
 /* Scrollbar — light */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #f3f4f6; }

@@ -1,12 +1,15 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import QRCode from 'react-qr-code'
 import { Button } from '../ui/Button'
 import type { OrderState } from '../../types'
+
+const SEND_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
 
 interface SendStepProps {
   orderState: Partial<OrderState>
   onSuccess?: (transferId: string) => void
   onBack?: () => void
+  onTimeout?: () => void
 }
 
 function CopyIcon({ copied }: { copied: boolean }) {
@@ -35,13 +38,23 @@ function CopyIcon({ copied }: { copied: boolean }) {
   )
 }
 
-export function SendStep({ orderState, onSuccess, onBack }: SendStepProps) {
+export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepProps) {
   const [copiedAddress, setCopiedAddress] = useState(false)
   const [copiedAmount, setCopiedAmount] = useState(false)
   const [copiedTxId, setCopiedTxId] = useState(false)
   const [done, setDone] = useState(false)
 
+  // Auto-cancel the transfer if the user idles for 5 minutes without sending
+  useEffect(() => {
+    if (done) return
+    const timer = setTimeout(() => {
+      if (onTimeout) onTimeout()
+    }, SEND_TIMEOUT_MS)
+    return () => clearTimeout(timer)
+  }, [done, onTimeout])
+
   const {
+    amount = 0,
     transferId,
     depositAddress,
     depositAmount,
@@ -152,15 +165,15 @@ export function SendStep({ orderState, onSuccess, onBack }: SendStepProps) {
       </div>
 
       {/* Amount to send */}
-      {depositAmount && (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-gray-400">
-            Amount to send
-          </p>
-          <div className="flex items-center justify-between">
-            <span className="text-xl font-bold text-gray-900">
-              {depositAmount} {depositCurrency}
-            </span>
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <p className="mb-1 text-xs font-medium uppercase tracking-wider text-gray-400">
+          Amount to send
+        </p>
+        <div className="flex items-center justify-between">
+          <span className="text-xl font-bold text-gray-900">
+            ${(Math.floor(amount * 100) / 100).toFixed(2)} USD
+          </span>
+          {depositAmount && (
             <button
               type="button"
               onClick={() => copyToClipboard(depositAmount, setCopiedAmount)}
@@ -169,9 +182,9 @@ export function SendStep({ orderState, onSuccess, onBack }: SendStepProps) {
               <CopyIcon copied={copiedAmount} />
               <span>{copiedAmount ? 'Copied!' : 'Copy'}</span>
             </button>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Deposit address */}
       {depositAddress ? (
