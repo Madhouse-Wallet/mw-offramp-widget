@@ -1,0 +1,17 @@
+{
+  "name": "Madhouse Wallet — Sell Crypto",
+  "short_name": "MW Offramp",
+  "description": "Convert USDC to 45+ local currencies and receive funds directly to your bank account.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#ea580c",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
