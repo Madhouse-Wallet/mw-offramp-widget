@@ -96,6 +96,8 @@ export interface QuoteResponse {
   eurAmount: number
   bridgeRate: string
   txFee: number
+  developerFee: number
+  developerFeePercent: number
   netUsdAmount: number
   quote: {
     id: string

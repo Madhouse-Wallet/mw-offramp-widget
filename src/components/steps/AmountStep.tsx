@@ -236,6 +236,9 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
   const usd = parseFloat(amountStr)
   const isValidAmount = !isNaN(usd) && usd > 0
   const txFee = isValidAmount ? (quote?.txFee ?? calcTxFee(usd)) : 0
+  const developerFee = quote?.developerFee ?? 0
+  const developerFeePercent = quote?.developerFeePercent ?? 0
+  const netUsdAmount = quote?.netUsdAmount ?? (isValidAmount ? usd - txFee : 0)
   const canContinue = !loading && !error && quote !== null && !amountError
 
   const balanceOption = quote?.quote.paymentOptions?.find(
@@ -341,8 +344,15 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
         <div className="space-y-0 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-gray-50">
           <div className="flex items-center justify-between px-4 py-2.5 text-sm">
             <span className="text-gray-500">Network fee</span>
-            <span className="font-medium text-gray-900">${floorTwo(txFee)}</span>
+            <span className="font-medium text-gray-900">−${floorTwo(txFee)}</span>
           </div>
+
+          {developerFee > 0 && (
+            <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+              <span className="text-gray-500">Service fee ({floorTwo(developerFeePercent)}%)</span>
+              <span className="font-medium text-gray-900">−${floorTwo(developerFee)}</span>
+            </div>
+          )}
 
           {wiseFee != null && (
             <div className="flex items-center justify-between px-4 py-2.5 text-sm">
@@ -365,7 +375,7 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
           <div className="flex items-center justify-between px-4 py-2.5 text-sm">
             <span className="text-gray-500">You send</span>
             <span className="font-semibold text-gray-900">
-              ${floorTwo(usd)} {selectedOption ? selectedOption.tokenLabel : 'USDC'}
+              ${floorTwo(netUsdAmount)} {selectedOption ? selectedOption.tokenLabel : 'USDC'}
             </span>
           </div>
 
