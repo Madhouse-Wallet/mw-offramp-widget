@@ -1,57 +1,57 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
-import { Select } from '../ui/Select'
+import { CurrencySelect } from '../ui/CurrencySelect'
 import { Spinner } from '../ui/Spinner'
 import { getQuote, getDepositOptions, getTransferStatus, executeCaptcha, verifyCaptchaToken } from '../../api/client'
 import type { OrderState, QuoteResponse, DepositOption, TransferStatusResponse } from '../../types'
 
 const CURRENCIES = [
-  { value: 'AED', label: 'AED — UAE Dirham' },
-  { value: 'AUD', label: 'AUD — Australian Dollar' },
-  { value: 'BDT', label: 'BDT — Bangladeshi Taka' },
-  { value: 'BGN', label: 'BGN — Bulgarian Lev' },
-  { value: 'BRL', label: 'BRL — Brazilian Real' },
-  { value: 'CAD', label: 'CAD — Canadian Dollar' },
-  { value: 'CHF', label: 'CHF — Swiss Franc' },
-  { value: 'CZK', label: 'CZK — Czech Koruna' },
-  { value: 'DKK', label: 'DKK — Danish Krone' },
-  { value: 'EGP', label: 'EGP — Egyptian Pound' },
-  { value: 'EUR', label: 'EUR — Euro' },
-  { value: 'GBP', label: 'GBP — British Pound' },
-  { value: 'GHS', label: 'GHS — Ghanaian Cedi' },
-  { value: 'HKD', label: 'HKD — Hong Kong Dollar' },
-  { value: 'HRK', label: 'HRK — Croatian Kuna' },
-  { value: 'HUF', label: 'HUF — Hungarian Forint' },
-  { value: 'IDR', label: 'IDR — Indonesian Rupiah' },
-  { value: 'ILS', label: 'ILS — Israeli Shekel' },
-  { value: 'INR', label: 'INR — Indian Rupee' },
-  { value: 'JPY', label: 'JPY — Japanese Yen' },
-  { value: 'KES', label: 'KES — Kenyan Shilling' },
-  { value: 'LKR', label: 'LKR — Sri Lankan Rupee' },
-  { value: 'MAD', label: 'MAD — Moroccan Dirham' },
-  { value: 'MXN', label: 'MXN — Mexican Peso' },
-  { value: 'MYR', label: 'MYR — Malaysian Ringgit' },
-  { value: 'NGN', label: 'NGN — Nigerian Naira' },
-  { value: 'NOK', label: 'NOK — Norwegian Krone' },
-  { value: 'NPR', label: 'NPR — Nepalese Rupee' },
-  { value: 'NZD', label: 'NZD — New Zealand Dollar' },
-  { value: 'PHP', label: 'PHP — Philippine Peso' },
-  { value: 'PKR', label: 'PKR — Pakistani Rupee' },
-  { value: 'PLN', label: 'PLN — Polish Złoty' },
-  { value: 'RON', label: 'RON — Romanian Leu' },
-  { value: 'RWF', label: 'RWF — Rwandan Franc' },
-  { value: 'SAR', label: 'SAR — Saudi Riyal' },
-  { value: 'SEK', label: 'SEK — Swedish Krona' },
-  { value: 'SGD', label: 'SGD — Singapore Dollar' },
-  { value: 'THB', label: 'THB — Thai Baht' },
-  { value: 'TRY', label: 'TRY — Turkish Lira' },
-  { value: 'TZS', label: 'TZS — Tanzanian Shilling' },
-  { value: 'UGX', label: 'UGX — Ugandan Shilling' },
-  { value: 'USD', label: 'USD — US Dollar' },
-  { value: 'VND', label: 'VND — Vietnamese Dong' },
-  { value: 'XOF', label: 'XOF — West African CFA Franc' },
-  { value: 'ZAR', label: 'ZAR — South African Rand' },
+  { value: 'AED', label: 'AED — UAE Dirham',             flag: '🇦🇪' },
+  { value: 'AUD', label: 'AUD — Australian Dollar',      flag: '🇦🇺' },
+  { value: 'BDT', label: 'BDT — Bangladeshi Taka',       flag: '🇧🇩' },
+  { value: 'BGN', label: 'BGN — Bulgarian Lev',          flag: '🇧🇬' },
+  { value: 'BRL', label: 'BRL — Brazilian Real',         flag: '🇧🇷' },
+  { value: 'CAD', label: 'CAD — Canadian Dollar',        flag: '🇨🇦' },
+  { value: 'CHF', label: 'CHF — Swiss Franc',            flag: '🇨🇭' },
+  { value: 'CZK', label: 'CZK — Czech Koruna',           flag: '🇨🇿' },
+  { value: 'DKK', label: 'DKK — Danish Krone',           flag: '🇩🇰' },
+  { value: 'EGP', label: 'EGP — Egyptian Pound',         flag: '🇪🇬' },
+  { value: 'EUR', label: 'EUR — Euro',                   flag: '🇪🇺' },
+  { value: 'GBP', label: 'GBP — British Pound',          flag: '🇬🇧' },
+  { value: 'GHS', label: 'GHS — Ghanaian Cedi',          flag: '🇬🇭' },
+  { value: 'HKD', label: 'HKD — Hong Kong Dollar',       flag: '🇭🇰' },
+  { value: 'HRK', label: 'HRK — Croatian Kuna',          flag: '🇭🇷' },
+  { value: 'HUF', label: 'HUF — Hungarian Forint',       flag: '🇭🇺' },
+  { value: 'IDR', label: 'IDR — Indonesian Rupiah',      flag: '🇮🇩' },
+  { value: 'ILS', label: 'ILS — Israeli Shekel',         flag: '🇮🇱' },
+  { value: 'INR', label: 'INR — Indian Rupee',           flag: '🇮🇳' },
+  { value: 'JPY', label: 'JPY — Japanese Yen',           flag: '🇯🇵' },
+  { value: 'KES', label: 'KES — Kenyan Shilling',        flag: '🇰🇪' },
+  { value: 'LKR', label: 'LKR — Sri Lankan Rupee',       flag: '🇱🇰' },
+  { value: 'MAD', label: 'MAD — Moroccan Dirham',        flag: '🇲🇦' },
+  { value: 'MXN', label: 'MXN — Mexican Peso',           flag: '🇲🇽' },
+  { value: 'MYR', label: 'MYR — Malaysian Ringgit',      flag: '🇲🇾' },
+  { value: 'NGN', label: 'NGN — Nigerian Naira',         flag: '🇳🇬' },
+  { value: 'NOK', label: 'NOK — Norwegian Krone',        flag: '🇳🇴' },
+  { value: 'NPR', label: 'NPR — Nepalese Rupee',         flag: '🇳🇵' },
+  { value: 'NZD', label: 'NZD — New Zealand Dollar',     flag: '🇳🇿' },
+  { value: 'PHP', label: 'PHP — Philippine Peso',        flag: '🇵🇭' },
+  { value: 'PKR', label: 'PKR — Pakistani Rupee',        flag: '🇵🇰' },
+  { value: 'PLN', label: 'PLN — Polish Złoty',           flag: '🇵🇱' },
+  { value: 'RON', label: 'RON — Romanian Leu',           flag: '🇷🇴' },
+  { value: 'RWF', label: 'RWF — Rwandan Franc',          flag: '🇷🇼' },
+  { value: 'SAR', label: 'SAR — Saudi Riyal',            flag: '🇸🇦' },
+  { value: 'SEK', label: 'SEK — Swedish Krona',          flag: '🇸🇪' },
+  { value: 'SGD', label: 'SGD — Singapore Dollar',       flag: '🇸🇬' },
+  { value: 'THB', label: 'THB — Thai Baht',              flag: '🇹🇭' },
+  { value: 'TRY', label: 'TRY — Turkish Lira',           flag: '🇹🇷' },
+  { value: 'TZS', label: 'TZS — Tanzanian Shilling',     flag: '🇹🇿' },
+  { value: 'UGX', label: 'UGX — Ugandan Shilling',       flag: '🇺🇬' },
+  { value: 'USD', label: 'USD — US Dollar',              flag: '🇺🇸' },
+  { value: 'VND', label: 'VND — Vietnamese Dong',        flag: '🇻🇳' },
+  { value: 'XOF', label: 'XOF — West African CFA Franc', flag: '🌍' },
+  { value: 'ZAR', label: 'ZAR — South African Rand',     flag: '🇿🇦' },
 ]
 
 function calcTxFee(amount: number): number {
@@ -273,10 +273,10 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
           error={amountError ?? undefined}
           required
         />
-        <Select
+        <CurrencySelect
           label="Recipient Currency"
           value={currency}
-          onChange={(e) => setCurrency(e.target.value)}
+          onChange={setCurrency}
           options={CURRENCIES}
           required
         />

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
+import { CurrencySelect, countryFlag, isCountryField } from '../ui/CurrencySelect'
 import { Spinner } from '../ui/Spinner'
 import {
   getAccountRequirements,
@@ -213,6 +214,24 @@ export function RecipientStep({ orderState, onNext, onBack, onSessionExpired }: 
     const error = fieldErrors[field.key]
 
     if (field.type === 'select' && field.valuesAllowed) {
+      const keys = field.valuesAllowed.map((v) => v.key)
+      if (isCountryField(keys)) {
+        return (
+          <CurrencySelect
+            key={field.key}
+            label={field.name}
+            value={value}
+            onChange={(val) => handleFieldChange(field, val)}
+            options={field.valuesAllowed.map((v) => ({
+              value: v.key,
+              label: v.name,
+              flag: countryFlag(v.key) ?? '🌐',
+            }))}
+            error={error}
+            required={field.required}
+          />
+        )
+      }
       return (
         <Select
           key={field.key}

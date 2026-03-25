@@ -1,5 +1,103 @@
 import React, { useState } from 'react'
+import Head from 'next/head'
 import dynamic from 'next/dynamic'
+
+const SITE_URL = 'https://sell.madhousewallet.com'
+
+// ── JSON-LD structured data ───────────────────────────────────────────────────
+// Helps Google, Bing, Perplexity, and AI search engines understand the page.
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebApplication',
+      '@id': `${SITE_URL}/#webapp`,
+      name: 'Madhouse Wallet Crypto Offramp',
+      url: SITE_URL,
+      description:
+        'Convert USDC to 45+ local currencies and receive funds directly to your bank account. Fast, secure crypto offramp powered by Madhouse Wallet and Wise.',
+      applicationCategory: 'FinanceApplication',
+      operatingSystem: 'Web',
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+        description: 'No subscription fee. Small network and transfer fees apply per transaction.',
+      },
+      featureList: [
+        'USDC to 45+ currencies',
+        'Base, Arbitrum, Ethereum, Optimism, Polygon, Solana networks',
+        'Bank transfer via Wise',
+        'Real-time exchange rate quotes',
+        'No account registration required',
+      ],
+    },
+    {
+      '@type': 'Organization',
+      '@id': `${SITE_URL}/#org`,
+      name: 'Madhouse Wallet',
+      url: 'https://madhousewallet.com',
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/mw.png`,
+      },
+      sameAs: [
+        'https://twitter.com/MadhouseWallet',
+      ],
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'customer support',
+        availableLanguage: 'English',
+        url: 'https://wa.me/14847739576',
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'How do I sell USDC and receive local currency?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Enter the USD amount you want to convert, choose your recipient currency, enter your bank account details, then send USDC to the deposit address shown. Madhouse Wallet converts it and sends the local currency via Wise bank transfer.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Which cryptocurrencies and networks are supported?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Currently USDC is supported on Base, Arbitrum, Ethereum, Optimism, Polygon, and Solana networks.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Which currencies can I receive?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Over 45 currencies including USD, EUR, GBP, NGN, KES, GHS, INR, BRL, MXN, PHP, and many more.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'How long does the transfer take?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Once your USDC deposit is detected on-chain, bank transfers typically complete within a few hours via Wise.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'What are the fees?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'A small network fee ($2–$3) plus a Wise transfer fee applies. The exact amounts are shown before you confirm.',
+          },
+        },
+      ],
+    },
+  ],
+}
 
 // The widget uses Web Crypto (jose) and browser-only APIs — disable SSR to
 // prevent hydration mismatches.
@@ -91,17 +189,25 @@ function RecaptchaBadge() {
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4 pb-8 bg-gray-100">
-      <OfframpWidget
-        onSuccess={(transferId) => {
-          console.log('Transfer complete:', transferId)
-        }}
-        onError={(err) => {
-          console.error('Widget error:', err)
-        }}
-      />
-      <WhatsAppButton />
-      <RecaptchaBadge />
-    </div>
+    <>
+      <Head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </Head>
+      <div className="flex min-h-screen flex-col items-center justify-center p-4 pb-8 bg-gray-100">
+        <OfframpWidget
+          onSuccess={(transferId) => {
+            console.log('Transfer complete:', transferId)
+          }}
+          onError={(err) => {
+            console.error('Widget error:', err)
+          }}
+        />
+        <WhatsAppButton />
+        <RecaptchaBadge />
+      </div>
+    </>
   )
 }
