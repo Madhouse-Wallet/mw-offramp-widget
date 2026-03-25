@@ -401,6 +401,7 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
         Continue
       </Button>
 
+
       {/* Transfer status lookup */}
       <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-4">
         <p className="mb-2 text-sm font-medium text-gray-700">Check a previous transfer</p>

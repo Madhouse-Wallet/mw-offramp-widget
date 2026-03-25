@@ -40,6 +40,25 @@ function WhatsAppFab() {
   )
 }
 
+function RecaptchaBadge() {
+  if (!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) return null
+  return (
+    <div className="fixed bottom-4 left-4 z-50 flex items-center gap-1 rounded bg-white/80 px-2 py-1 shadow-sm backdrop-blur-sm">
+      <svg width="14" height="14" viewBox="0 0 64 64" aria-hidden="true">
+        <path fill="#4A90D9" d="M32 0C14.3 0 0 14.3 0 32s14.3 32 32 32 32-14.3 32-32S49.7 0 32 0z"/>
+        <path fill="#fff" d="M32 10c-12.1 0-22 9.9-22 22s9.9 22 22 22 22-9.9 22-22-9.9-22-22-22zm0 38c-8.8 0-16-7.2-16-16s7.2-16 16-16 16 7.2 16 16-7.2 16-16 16z"/>
+        <path fill="#4A90D9" d="M32 22c-5.5 0-10 4.5-10 10s4.5 10 10 10 10-4.5 10-10-4.5-10-10-10z"/>
+      </svg>
+      <span className="text-[10px] leading-none text-gray-500">
+        reCAPTCHA{' '}
+        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy</a>
+        {' · '}
+        <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms</a>
+      </span>
+    </div>
+  )
+}
+
 export default function Home() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-gray-100">
@@ -52,6 +71,7 @@ export default function Home() {
         }}
       />
       <WhatsAppFab />
+      <RecaptchaBadge />
     </div>
   )
 }
