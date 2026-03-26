@@ -7,7 +7,7 @@ const SITE_NAME = 'Madhouse Wallet — Sell Crypto'
 const TITLE = 'Sell Crypto Instantly | Madhouse Wallet Offramp'
 const DESCRIPTION =
   'Convert USDC to 45+ local currencies and receive funds directly to your bank account. Fast, secure crypto offramp powered by Madhouse Wallet and Wise.'
-const OG_IMAGE = `${SITE_URL}/og-image.png`
+const OG_IMAGE = `${SITE_URL}api/og`
 
 export default function App({ Component, pageProps }: AppProps) {
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
