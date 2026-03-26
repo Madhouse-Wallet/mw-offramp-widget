@@ -9,6 +9,8 @@ const DESCRIPTION =
   'Convert USDC to 45+ local currencies and receive funds directly to your bank account. Fast, secure crypto offramp powered by Madhouse Wallet and Wise.'
 const OG_IMAGE = `${SITE_URL}api/og`
 
+const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+
 export default function App({ Component, pageProps }: AppProps) {
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
   return (
@@ -53,6 +55,26 @@ export default function App({ Component, pageProps }: AppProps) {
         <meta name="twitter:description" content={DESCRIPTION} />
         <meta name="twitter:image" content={OG_IMAGE} />
         <meta name="twitter:image:alt" content="Madhouse Wallet crypto offramp" />
+
+        {/* ── Google Analytics 4 ─────────────────────────────────────────── */}
+        {GA_ID && (
+          <>
+            <script
+              async
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+            />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', '${GA_ID}', { page_path: window.location.pathname });
+                `,
+              }}
+            />
+          </>
+        )}
 
         {/* ── reCAPTCHA ──────────────────────────────────────────────────── */}
         {siteKey && (
