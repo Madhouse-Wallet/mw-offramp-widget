@@ -80,8 +80,8 @@ export interface FeeResponse {
 }
 
 export interface AmountLimitsResponse {
-  minAmount: number
-  maxAmount: number
+  min_amount: number
+  max_amount: number
 }
 
 // Quote snapshot stored on a transfer record

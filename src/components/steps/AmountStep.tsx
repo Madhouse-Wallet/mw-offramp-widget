@@ -282,8 +282,12 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
     getAmountLimits()
       .then((limits) => {
-        setMinAmount(limits.minAmount)
-        setMaxAmount(limits.maxAmount)
+        if (typeof limits.min_amount === 'number' && isFinite(limits.min_amount)) {
+          setMinAmount(limits.min_amount)
+        }
+        if (typeof limits.max_amount === 'number' && isFinite(limits.max_amount)) {
+          setMaxAmount(limits.max_amount)
+        }
         setLimitsLoaded(true)
       })
       .catch(() => {
