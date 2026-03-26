@@ -73,13 +73,15 @@ function RecipientSection({ recipient }: { recipient: RecipientSnapshot }) {
       <DetailRow label="Currency" value={recipient.currency} />
       <DetailRow label="Account type" value={recipient.type.toUpperCase()} />
       {recipient.country && <DetailRow label="Country" value={recipient.country} />}
-      {Object.entries(recipient.details).map(([key, val]) => (
-        <DetailRow
-          key={key}
-          label={key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}
-          value={String(val ?? '—')}
-        />
-      ))}
+      {Object.entries(recipient.details)
+        .filter(([, val]) => val != null && val !== '')
+        .map(([key, val]) => (
+          <DetailRow
+            key={key}
+            label={key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}
+            value={String(val)}
+          />
+        ))}
     </ExpandSection>
   )
 }
