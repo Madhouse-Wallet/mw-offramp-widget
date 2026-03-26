@@ -3,8 +3,8 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { CurrencySelect } from '../ui/CurrencySelect'
 import { Spinner } from '../ui/Spinner'
-import { getQuote, getDepositOptions, getTransferStatus, executeCaptcha, verifyCaptchaToken } from '../../api/client'
-import type { OrderState, QuoteResponse, DepositOption, TransferStatusResponse } from '../../types'
+import { getQuote, getFee, getDepositOptions, getTransferStatus, executeCaptcha, verifyCaptchaToken } from '../../api/client'
+import type { OrderState, QuoteResponse, FeeResponse, DepositOption, TransferStatusResponse } from '../../types'
 
 const CURRENCIES = [
   { value: 'AED', label: 'AED — UAE Dirham',             flag: '🇦🇪' },
@@ -74,6 +74,7 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
   )
   const [email, setEmail] = useState(initialState.userEmail ?? '')
   const [emailError, setEmailError] = useState<string | null>(null)
+  const [fee, setFee] = useState<FeeResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [amountError, setAmountError] = useState<string | null>(null)
@@ -90,12 +91,11 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Fetch deposit options once on mount
+  // Fetch deposit options and fee schedule once on mount
   useEffect(() => {
     getDepositOptions()
       .then((opts) => {
         setDepositOptions(opts)
-        // Restore previous selection or default to first option
         if (opts.length > 0) {
           const restored = initialState.sourceToken && initialState.sourceNetwork
             ? opts.find(
@@ -105,9 +105,11 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
           setSelectedOption(restored)
         }
       })
-      .catch(() => {
-        // Non-fatal — user can still proceed without token picker
-      })
+      .catch(() => {/* Non-fatal */})
+
+    getFee()
+      .then(setFee)
+      .catch(() => {/* Non-fatal */})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchQuote = useCallback(
@@ -225,19 +227,16 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
   }
 
   const usd = parseFloat(amountStr)
-  const isValidAmount = !isNaN(usd) && usd > 0
   const developerFee = quote?.developerFee ?? 0
   const developerFeePercent = quote?.developerFeePercent ?? 0
-  const netUsdAmount = quote?.netUsdAmount ?? (isValidAmount ? usd : 0)
   const canContinue = !loading && !error && quote !== null && !amountError
 
-  const balanceOption = quote?.quote.paymentOptions?.find(
-    (o) => o.payIn === 'BALANCE' && !o.disabled,
-  )
-  const wiseFee =
-    balanceOption?.price?.total?.value?.amount ??
-    balanceOption?.fee?.total ??
-    (quote?.quote.fee?.total ?? null)
+  const transferOption = quote?.quote.paymentOptions?.[0] ?? null
+  const transferFeeUsd =
+    transferOption?.fee.transfer != null && quote?.usdToTargetRate
+      ? transferOption.fee.transfer / quote.usdToTargetRate
+      : null
+  const estimatedDelivery = transferOption?.estimatedDelivery ?? null
 
   return (
     <div className="space-y-5">
@@ -332,6 +331,13 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
       {!loading && !error && quote && (
         <div className="space-y-0 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+            <span className="text-gray-500">You send</span>
+            <span className="font-semibold text-gray-900">
+              ${floorTwo(usd)} {selectedOption ? selectedOption.tokenLabel : 'USDC'}
+            </span>
+          </div>
+
           {developerFee > 0 && (
             <div className="flex items-center justify-between px-4 py-2.5 text-sm">
               <span className="text-gray-500">Service fee ({floorTwo(developerFeePercent)}%)</span>
@@ -339,43 +345,43 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
             </div>
           )}
 
-          {wiseFee != null && (
+          {transferFeeUsd != null && (
             <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-              <span className="text-gray-500">Wise transfer fee</span>
+              <span className="text-gray-500">Transfer fee</span>
               <span className="font-medium text-gray-900">
-                {floorTwo(wiseFee)} {quote.quote.source}
+                −${floorTwo(transferFeeUsd)}
               </span>
+            </div>
+          )}
+
+          {fee && fee.mwFee > 0 && (
+            <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+              <span className="text-gray-500">
+                Platform fee ({floorTwo(fee.mwFeePercentage)}%{fee.isDiscounted ? ' · discounted' : ''})
+              </span>
+              <span className="font-medium text-gray-900">−${floorTwo(fee.mwFee)}</span>
             </div>
           )}
 
           <div className="flex items-center justify-between px-4 py-2.5 text-sm">
             <span className="text-gray-500">Exchange rate</span>
             <span className="font-medium text-gray-900">
-              {quote.quote.target === 'EUR'
-                ? `1 USD ≈ ${quote.bridgeRate} EUR`
-                : `1 USD ≈ ${floorTwo(parseFloat(quote.bridgeRate) * quote.quote.rate)} ${quote.quote.target}`}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-            <span className="text-gray-500">You send</span>
-            <span className="font-semibold text-gray-900">
-              ${floorTwo(netUsdAmount)} {selectedOption ? selectedOption.tokenLabel : 'USDC'}
+              1 USD ≈ {floorTwo(quote.usdToTargetRate)} {quote.targetCurrency}
             </span>
           </div>
 
           <div className="flex items-center justify-between px-4 py-2.5 text-sm">
             <span className="font-medium text-gray-700">Recipient gets</span>
             <span className="font-semibold text-orange-600">
-              {floorTwo(quote.quote.targetAmount)} {quote.quote.target}
+              {quote.quote.targetAmount != null ? floorTwo(quote.quote.targetAmount) : '—'} {quote.targetCurrency}
             </span>
           </div>
 
-          {balanceOption?.estimatedDelivery && (
+          {estimatedDelivery && (
             <div className="px-4 py-2.5">
               <p className="text-xs text-gray-400">
                 Estimated delivery:{' '}
-                {new Date(balanceOption.estimatedDelivery).toLocaleDateString(undefined, {
+                {new Date(estimatedDelivery).toLocaleDateString(undefined, {
                   weekday: 'short',
                   month: 'short',
                   day: 'numeric',

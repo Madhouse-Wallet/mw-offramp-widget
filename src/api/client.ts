@@ -1,5 +1,6 @@
 import type {
   QuoteResponse,
+  FeeResponse,
   RequirementsResponse,
   RecipientResponse,
   CreateRecipientPayload,
@@ -212,6 +213,10 @@ export async function getTransferStatus(transferId: string): Promise<TransferSta
 export async function getDepositOptions(): Promise<DepositOption[]> {
   const resp = await apiFetch<DepositOptionsResponse>('/api/proxy/payouts/deposit-options')
   return resp.options ?? []
+}
+
+export async function getFee(): Promise<FeeResponse> {
+  return apiFetch<FeeResponse>('/api/proxy/payouts/fee')
 }
 
 export async function getQuote(

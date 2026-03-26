@@ -14,6 +14,7 @@ const ALLOWED_PATH_PREFIXES = [
   'payouts/deposit-options',
   'payouts/transfer-status',
   'payouts/transfer/cancel',
+  'payouts/fee',
 ]
 
 function isAllowedPath(pathParts: string[]): boolean {

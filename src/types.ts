@@ -59,58 +59,29 @@ export interface OrderState {
 
 export interface WisePaymentOption {
   payIn: string
-  payOut: string | null
-  disabled: boolean
-  fee?: {
-    transferwise?: number
-    payIn?: number
-    payOut?: number
-    total?: number
-    discount?: number
-    priceSetId?: number
-    partner?: number
-  }
-  price?: {
-    priceSetId?: number
-    total?: {
-      type?: string
-      label?: string
-      value?: { amount: number; currency: string; label: string }
-    }
-    items?: Array<{
-      type?: string
-      label?: string
-      value?: { amount: number; currency: string; label: string }
-    }>
-  }
-  estimatedDelivery?: string
-  estimatedDeliveryDelays?: unknown[]
-  allowedProfileTypes?: string[]
-  payInProduct?: string
-  feePercentage?: number
+  fee: { transfer: number | null }
+  estimatedDelivery: string | null
 }
 
 export interface QuoteResponse {
   quoteId: string
-  usdAmount: number
-  eurAmount: number
-  bridgeRate: string
-  txFee: number
+  sourceAmount: number
   developerFee: number
   developerFeePercent: number
   netUsdAmount: number
+  targetCurrency: string
+  usdToTargetRate: number
   quote: {
-    id: string
-    rate: number
-    rateType: string
-    source: string
-    target: string
-    sourceAmount: number
-    targetAmount: number
-    fee?: { total: number; breakdown: Array<{ feeType: string; price: number }> }
-    validUntil: string
+    targetAmount: number | null
     paymentOptions?: WisePaymentOption[]
   }
+}
+
+export interface FeeResponse {
+  mwFee: number
+  mwFeePercentage: number
+  isDiscounted: boolean
+  capApplied: boolean
 }
 
 // ─── Account requirements ─────────────────────────────────────────────────────
