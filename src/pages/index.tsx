@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import Head from 'next/head'
 import dynamic from 'next/dynamic'
 
-const SITE_URL = 'https://sell.madhousewallet.com'
+const SITE_URL = 'https://sellcoins.now/'
 
 // ── JSON-LD structured data ───────────────────────────────────────────────────
 // Helps Google, Bing, Perplexity, and AI search engines understand the page.

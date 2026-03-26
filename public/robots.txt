@@ -4,4 +4,4 @@ Allow: /
 # Block API routes from crawlers
 Disallow: /api/
 
-Sitemap: https://sell.madhousewallet.com/sitemap.xml
+Sitemap: https://sellcoins.now//sitemap.xml

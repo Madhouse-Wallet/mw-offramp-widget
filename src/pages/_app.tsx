@@ -2,7 +2,7 @@ import type { AppProps } from 'next/app'
 import Head from 'next/head'
 import '@/styles/globals.css'
 
-const SITE_URL = 'https://sell.madhousewallet.com'
+const SITE_URL = 'https://sellcoins.now/'
 const SITE_NAME = 'Madhouse Wallet — Sell Crypto'
 const TITLE = 'Sell Crypto Instantly | Madhouse Wallet Offramp'
 const DESCRIPTION =
