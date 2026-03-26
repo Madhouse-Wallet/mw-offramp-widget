@@ -17,6 +17,7 @@ export type {
   CreateRecipientPayload,
   CreateTransferPayload,
   TransferResponse,
+  RecipientSnapshot,
   TransferRecord,
   TransferStatusResponse,
 } from '../src/types'

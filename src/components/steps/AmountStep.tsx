@@ -4,7 +4,176 @@ import { Input } from '../ui/Input'
 import { CurrencySelect } from '../ui/CurrencySelect'
 import { Spinner } from '../ui/Spinner'
 import { getQuote, getDepositOptions, getTransferStatus, executeCaptcha, verifyCaptchaToken } from '../../api/client'
-import type { OrderState, QuoteResponse, DepositOption, TransferRecord } from '../../types'
+import type { OrderState, QuoteResponse, DepositOption, TransferRecord, RecipientSnapshot, TransferQuoteSnapshot } from '../../types'
+
+// ─── Transfer status card ─────────────────────────────────────────────────────
+
+function StatusBadge({ status, label }: { status: string; label: string }) {
+  const color =
+    status === 'completed' ? 'bg-green-100 text-green-700 ring-green-200' :
+    status === 'failed'    ? 'bg-red-100 text-red-700 ring-red-200' :
+                             'bg-orange-100 text-orange-700 ring-orange-200'
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${color}`}>
+      {label}
+    </span>
+  )
+}
+
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-1.5">
+      <span className="shrink-0 text-xs text-gray-500">{label}</span>
+      <span className="text-right text-xs font-medium text-gray-900 break-all">{value}</span>
+    </div>
+  )
+}
+
+function ExpandSection({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="rounded-lg border border-gray-200">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between px-3 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-1"
+      >
+        <span className="text-xs font-semibold text-gray-700">{title}</span>
+        <svg
+          className={`h-3.5 w-3.5 shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden="true"
+        >
+          <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <div className="divide-y divide-gray-100 border-t border-gray-200 px-3">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RecipientSection({ recipient }: { recipient: RecipientSnapshot }) {
+  return (
+    <ExpandSection title="Recipient">
+      <DetailRow label="Name" value={recipient.accountHolderName} />
+      <DetailRow label="Currency" value={recipient.currency} />
+      <DetailRow label="Account type" value={recipient.type.toUpperCase()} />
+      {recipient.country && <DetailRow label="Country" value={recipient.country} />}
+      {Object.entries(recipient.details).map(([key, val]) => (
+        <DetailRow
+          key={key}
+          label={key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}
+          value={String(val ?? '—')}
+        />
+      ))}
+    </ExpandSection>
+  )
+}
+
+function QuoteSection({ quote }: { quote: TransferQuoteSnapshot }) {
+  return (
+    <ExpandSection title="Quote details">
+      <DetailRow label="You sent" value={`$${floorTwo(quote.sourceAmount)} USD`} />
+      {quote.serviceFee > 0 && (
+        <DetailRow
+          label={`Service fee (${floorTwo(quote.serviceFeePercent)}%)`}
+          value={`−$${floorTwo(quote.serviceFee)}`}
+        />
+      )}
+      <DetailRow label="Net converted" value={`$${floorTwo(quote.netUsdAmount)} USD`} />
+      {quote.transferFee != null && (
+        <DetailRow label="Transfer fee" value={`−$${floorTwo(quote.transferFee)}`} />
+      )}
+      <DetailRow
+        label="Exchange rate"
+        value={`1 USD ≈ ${(Math.floor(quote.usdToTargetRate * 10000) / 10000).toFixed(4)} ${quote.targetCurrency}`}
+      />
+      {quote.targetAmount != null && (
+        <DetailRow
+          label="Recipient gets"
+          value={`${floorTwo(quote.targetAmount)} ${quote.targetCurrency}`}
+        />
+      )}
+      {quote.estimatedDelivery && (
+        <DetailRow
+          label="Est. delivery"
+          value={new Date(quote.estimatedDelivery).toLocaleDateString(undefined, {
+            weekday: 'short', month: 'short', day: 'numeric',
+          })}
+        />
+      )}
+    </ExpandSection>
+  )
+}
+
+function TransferStatusCard({ transfer }: { transfer: TransferRecord }) {
+  return (
+    <div
+      className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-white p-3"
+      role="region"
+      aria-label="Transfer status"
+    >
+      {/* Header row */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold text-gray-700">Transfer status</span>
+        <StatusBadge status={transfer.status} label={transfer.status_label} />
+      </div>
+
+      {/* Core fields */}
+      <div className="divide-y divide-gray-100">
+        <DetailRow label="Transfer ID" value={<span className="font-mono">{transfer.id}</span>} />
+        <DetailRow label="Amount" value={`$${floorTwo(transfer.amount)} USD`} />
+        {transfer.currency && (
+          <DetailRow label="Target currency" value={transfer.currency} />
+        )}
+        {transfer.sourceToken && transfer.sourceNetwork && (
+          <DetailRow
+            label="Sent via"
+            value={`${transfer.sourceToken.toUpperCase()} on ${transfer.sourceNetwork.charAt(0).toUpperCase() + transfer.sourceNetwork.slice(1)}`}
+          />
+        )}
+        {transfer.customerEmail && (
+          <DetailRow label="Notification email" value={transfer.customerEmail} />
+        )}
+        <DetailRow
+          label="Created"
+          value={new Date(transfer.timestamp).toLocaleString(undefined, {
+            month: 'short', day: 'numeric', year: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+          })}
+        />
+        <DetailRow
+          label="Last updated"
+          value={new Date(transfer.updated_at).toLocaleString(undefined, {
+            month: 'short', day: 'numeric', year: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+          })}
+        />
+        {transfer.error && (
+          <DetailRow label="Error" value={<span className="text-red-600">{transfer.error}</span>} />
+        )}
+      </div>
+
+      {/* Expandable sections */}
+      {transfer.recipient && <RecipientSection recipient={transfer.recipient} />}
+      {transfer.quote && <QuoteSection quote={transfer.quote} />}
+    </div>
+  )
+}
 
 const CURRENCIES = [
   { value: 'AED', label: 'AED — UAE Dirham',             flag: '🇦🇪' },
@@ -426,48 +595,7 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
         )}
 
         {lookupResult && (
-          <div className="mt-3 space-y-1 rounded-lg border border-gray-200 bg-white p-3 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-500">Status</span>
-              <span className={`font-semibold ${
-                lookupResult.status === 'completed' ? 'text-green-600' :
-                lookupResult.status === 'failed' ? 'text-red-600' :
-                'text-orange-600'
-              }`}>
-                {lookupResult.status_label}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-500">Amount sent</span>
-              <span className="font-medium text-gray-900">
-                ${(Math.floor(lookupResult.amount * 100) / 100).toFixed(2)} USD
-              </span>
-            </div>
-            {lookupResult.quote?.targetAmount != null && lookupResult.quote.targetCurrency && (
-              <div className="flex items-center justify-between">
-                <span className="text-gray-500">Recipient gets</span>
-                <span className="font-medium text-gray-900">
-                  {(Math.floor(lookupResult.quote.targetAmount * 100) / 100).toFixed(2)} {lookupResult.quote.targetCurrency}
-                </span>
-              </div>
-            )}
-            {lookupResult.quote?.usdToTargetRate != null && lookupResult.quote.targetCurrency && (
-              <div className="flex items-center justify-between">
-                <span className="text-gray-500">Rate</span>
-                <span className="font-medium text-gray-900">
-                  1 USD ≈ {(Math.floor(lookupResult.quote.usdToTargetRate * 10000) / 10000).toFixed(4)} {lookupResult.quote.targetCurrency}
-                </span>
-              </div>
-            )}
-            <div className="flex items-center justify-between">
-              <span className="text-gray-500">Created</span>
-              <span className="font-medium text-gray-900">
-                {new Date(lookupResult.timestamp).toLocaleDateString(undefined, {
-                  month: 'short', day: 'numeric', year: 'numeric',
-                })}
-              </span>
-            </div>
-          </div>
+          <TransferStatusCard transfer={lookupResult} />
         )}
       </div>
     </div>

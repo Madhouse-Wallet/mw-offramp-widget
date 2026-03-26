@@ -161,6 +161,15 @@ export interface TransferResponse {
 
 // ─── Transfer status ───────────────────────────────────────────────────────────
 
+export interface RecipientSnapshot {
+  id: number
+  accountHolderName: string
+  currency: string
+  type: string
+  country: string | null
+  details: Record<string, unknown>
+}
+
 export interface TransferRecord {
   id: string
   type: string
@@ -169,6 +178,7 @@ export interface TransferRecord {
   status: string
   status_label: string
   recipientId: number
+  recipient: RecipientSnapshot | null
   customerUuid: string | null
   customerEmail: string | null
   sourceToken: string | null
