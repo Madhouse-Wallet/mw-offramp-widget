@@ -54,10 +54,6 @@ const CURRENCIES = [
   { value: 'ZAR', label: 'ZAR — South African Rand',     flag: '🇿🇦' },
 ]
 
-function calcTxFee(amount: number): number {
-  return amount < 1000 ? 2 : 3
-}
-
 function floorTwo(n: number): string {
   return (Math.floor(n * 100) / 100).toFixed(2)
 }
@@ -182,11 +178,6 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
       setAmountError('Max 2 decimal places')
       return false
     }
-    const txFee = calcTxFee(usd)
-    if (usd <= txFee) {
-      setAmountError(`Amount must exceed the $${txFee} network fee`)
-      return false
-    }
     setAmountError(null)
     return true
   }
@@ -235,10 +226,9 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
   const usd = parseFloat(amountStr)
   const isValidAmount = !isNaN(usd) && usd > 0
-  const txFee = isValidAmount ? (quote?.txFee ?? calcTxFee(usd)) : 0
   const developerFee = quote?.developerFee ?? 0
   const developerFeePercent = quote?.developerFeePercent ?? 0
-  const netUsdAmount = quote?.netUsdAmount ?? (isValidAmount ? usd - txFee : 0)
+  const netUsdAmount = quote?.netUsdAmount ?? (isValidAmount ? usd : 0)
   const canContinue = !loading && !error && quote !== null && !amountError
 
   const balanceOption = quote?.quote.paymentOptions?.find(
@@ -342,11 +332,6 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
       {!loading && !error && quote && (
         <div className="space-y-0 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-            <span className="text-gray-500">Network fee</span>
-            <span className="font-medium text-gray-900">−${floorTwo(txFee)}</span>
-          </div>
-
           {developerFee > 0 && (
             <div className="flex items-center justify-between px-4 py-2.5 text-sm">
               <span className="text-gray-500">Service fee ({floorTwo(developerFeePercent)}%)</span>

@@ -7,9 +7,6 @@ function floorTwo(n: number): string {
   return (Math.floor(n * 100) / 100).toFixed(2)
 }
 
-function calcTxFee(amount: number): number {
-  return amount < 1000 ? 2 : 3
-}
 
 function getEstimatedDelivery(options?: WisePaymentOption[]): string | null {
   const opt = options?.find((o) => o.payIn === 'BALANCE' && !o.disabled)
@@ -62,7 +59,6 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
     userEmail,
   } = orderState
 
-  const txFee = quote?.txFee ?? calcTxFee(amount)
   const delivery = getEstimatedDelivery(quote?.quote.paymentOptions)
 
   async function handleConfirm() {
@@ -123,7 +119,6 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
 
       <div className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-gray-50">
         <SummaryRow label="You send" value={`$${floorTwo(amount)} USD`} />
-        <SummaryRow label="Network fee" value={`$${floorTwo(txFee)}`} />
 
         {quote && (
           <>
