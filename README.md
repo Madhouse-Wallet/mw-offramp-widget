@@ -4,6 +4,9 @@ An embeddable crypto offramp widget that lets users sell USDC and receive fiat c
 
 Built with Next.js 15. The Madhouse Wallet API key never leaves the server.
 
+<img width="1706" height="1255" alt="image" src="https://github.com/user-attachments/assets/8b41e4a7-0fe0-4912-b204-b174b0e69f8b" />
+
+
 ## How it works
 
 1. **Amount** — Enter a USD amount and choose a target currency. Live exchange rate and fee breakdown shown instantly.
