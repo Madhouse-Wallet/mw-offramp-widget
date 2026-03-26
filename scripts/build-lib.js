@@ -168,7 +168,20 @@ run(`npx tsc --project ${tsconfigPath}`)
 // Clean up temp tsconfig
 fs.unlinkSync(tsconfigPath)
 
-// 4. Write dist-lib/package.json
+// 4. Copy server files into dist-lib/
+fs.copyFileSync(
+  path.join(ROOT, 'lib/proxy-server.js'),
+  path.join(DIST, 'proxy-server.js'),
+)
+console.log('\n✓ dist-lib/proxy-server.js written')
+
+fs.copyFileSync(
+  path.join(ROOT, 'lib/nextjs-proxy-handler.js'),
+  path.join(DIST, 'nextjs-proxy-handler.js'),
+)
+console.log('✓ dist-lib/nextjs-proxy-handler.js written')
+
+// 5. Write dist-lib/package.json
 const rootPkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'))
 
 const distPkg = {
@@ -178,6 +191,9 @@ const distPkg = {
   main: './mw-offramp-widget.umd.js',
   module: './mw-offramp-widget.es.js',
   types: './lib/index.d.ts',
+  bin: {
+    'mw-offramp-proxy': './proxy-server.js',
+  },
   exports: {
     '.': {
       import: './mw-offramp-widget.es.js',
@@ -187,6 +203,10 @@ const distPkg = {
   peerDependencies: {
     react: '>=18',
     'react-dom': '>=18',
+  },
+  peerDependenciesMeta: {
+    // express is only needed if you use proxy-server.js
+    express: { optional: true },
   },
   sideEffects: false,
   license: rootPkg.license ?? 'UNLICENSED',

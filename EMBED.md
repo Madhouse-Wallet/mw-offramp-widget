@@ -12,54 +12,145 @@ npm run build:lib
 
 This produces `dist-lib/`:
 
-| File | Use |
-|---|---|
-| `mw-offramp-widget.es.js` | ESM — for bundlers (Webpack, Vite, Next.js, etc.) |
-| `mw-offramp-widget.umd.js` | UMD — for `<script>` tags and CDN use |
+| File | Purpose |
+| --- | --- |
+| `mw-offramp-widget.es.js` | ESM bundle — for bundlers (Webpack, Vite, Next.js, etc.) |
+| `mw-offramp-widget.umd.js` | UMD bundle — for `<script>` tags and CDN use |
+| `proxy-server.js` | Standalone proxy server (see section 2) |
 | `lib/index.d.ts` | TypeScript declarations |
 
-The build script installs its own Vite dev-dependencies on first run — you don't need to install anything manually.
+The build script installs its own dev-dependencies on first run — you don't need to install anything manually.
 
 ---
 
-## 2. Your backend proxy
+## 2. Run the proxy server
 
-The widget calls your backend to reach the Madhouse Wallet API. You must host a proxy that:
+The widget never holds your API credentials. Instead it calls a proxy you run server-side. The build produces `dist-lib/proxy-server.js` — a ready-to-run Express server that handles all of this for you.
 
-- Holds `WIDGET_API_KEY` and `WIDGET_USER_ID` server-side (never expose these to the browser)
-- Forwards requests to `https://business.madhousewallet.com/api/payouts/...`
-- Injects `Authorization: Bearer <WIDGET_API_KEY>` and `user_id: <WIDGET_USER_ID>` on the upstream request
+### Prerequisites
 
-You can copy the existing Next.js proxy from this repo (`src/pages/api/proxy/[...path].ts`) as a starting point — strip the JWT verification and JWE encryption if you use your own auth scheme, or keep them if you want the same security model.
+```bash
+npm install express
+```
 
-### Required proxy endpoints
+### Start it
 
-The widget calls these paths relative to `proxyUrl`:
+```bash
+node proxy-server.js <WIDGET_API_KEY> <WIDGET_USER_ID> [port]
+```
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/payouts/quote` | Fetch exchange rate + fee quote |
-| GET | `/payouts/deposit-options` | Fetch supported token/network pairs |
-| GET | `/payouts/fee` | Fetch fee schedule |
-| GET | `/payouts/account-requirements` | Fetch dynamic bank account fields |
-| POST | `/payouts/account-requirements` | Refresh fields on change |
-| POST | `/payouts/recipients` | Create recipient |
-| DELETE | `/payouts/recipients/:id` | Delete recipient |
-| POST | `/payouts/transfer` | Initiate transfer |
-| GET | `/payouts/transfer/:id` | Check transfer status |
-| POST | `/payouts/transfer/cancel` | Cancel pending transfer |
+| Argument | Required | Description |
+| --- | --- | --- |
+| `WIDGET_API_KEY` | Yes | Your Madhouse Wallet API key (`mw_live_...`). Obtain from `business.madhousewallet.com/developers`. |
+| `WIDGET_USER_ID` | Yes | Your Madhouse Wallet user ID. |
+| `port` | No | Port to listen on. Defaults to `3001`. |
+
+Arguments can also be passed as environment variables:
+
+```bash
+WIDGET_API_KEY=mw_live_... WIDGET_USER_ID=123 PORT=3001 node proxy-server.js
+```
+
+### What it does
+
+- Listens for widget requests on `/payouts/...`
+- Enforces a path allowlist (SSRF protection — only the endpoints the widget needs are reachable)
+- Injects `Authorization: Bearer <WIDGET_API_KEY>` on every upstream request
+- Injects `user_id: <WIDGET_USER_ID>` into recipient and transfer request bodies server-side
+- Forwards to `https://business.madhousewallet.com/api/payouts/...`
+- Returns a `/health` endpoint for uptime checks
+
+### Adding your own auth (optional)
+
+The proxy accepts requests from any origin by default. In production you should restrict access to authenticated users. Add middleware before the proxy starts — for example:
+
+```js
+// After requiring express, before starting the server:
+app.use((req, res, next) => {
+  const token = req.headers['x-my-app-token']
+  if (token !== process.env.MY_APP_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+  next()
+})
+```
+
+Then pass that header from the widget:
+
+```js
+configureClient({
+  proxyUrl: 'http://localhost:3001',
+  getHeaders: () => ({ 'x-my-app-token': myAppToken }),
+})
+```
 
 ---
 
-## 3. Installation
+## 3. Next.js proxy route (alternative to Express)
 
-### Option A — npm package (ESM / bundler)
+If your embedding app is already a Next.js project, use `dist-lib/nextjs-proxy-handler.js` instead of running the standalone Express server.
 
-Copy `dist-lib/` into your project or publish it to npm, then:
+Add to your `.env.local`:
+
+```env
+WIDGET_API_KEY=mw_live_...
+WIDGET_USER_ID=your-user-id
+```
+
+### Pages Router
+
+Copy the file to `pages/api/mw-proxy/[...path].js`:
+
+```bash
+cp node_modules/mw-offramp-widget/nextjs-proxy-handler.js pages/api/mw-proxy/[...path].js
+```
+
+Configure the widget:
+
+```js
+configureClient({ proxyUrl: '/api/mw-proxy' })
+```
+
+### App Router
+
+The same file exports named `GET`, `POST`, and `DELETE` handlers for the App Router. Copy it to `app/api/mw-proxy/[...path]/route.js`:
+
+```bash
+cp node_modules/mw-offramp-widget/nextjs-proxy-handler.js app/api/mw-proxy/[...path]/route.js
+```
+
+Configure the widget:
+
+```js
+configureClient({ proxyUrl: '/api/mw-proxy' })
+```
+
+### Adding auth (Next.js)
+
+Open the copied handler file and add your session check directly — example with NextAuth:
+
+```js
+// Pages Router — add near the top of the default export handler:
+import { getServerSession } from 'next-auth'
+import { authOptions } from '../auth/[...nextauth]'
+
+const session = await getServerSession(req, res, authOptions)
+if (!session) return res.status(401).json({ error: 'Unauthorized' })
+```
+
+---
+
+## 4. Install the widget
+
+### Option A — local package (ESM / bundler)
 
 ```bash
 npm install ./path/to/dist-lib
-# or after publishing:
+```
+
+Or after publishing to npm:
+
+```bash
 npm install mw-offramp-widget
 ```
 
@@ -82,14 +173,9 @@ Host `dist-lib/mw-offramp-widget.umd.js` on your CDN or static server. React and
 ```tsx
 import { configureClient, OfframpWidget } from 'mw-offramp-widget'
 
-// Call once before rendering — points the widget at your proxy
+// Call once at app startup — points the widget at your proxy
 configureClient({
-  proxyUrl: 'https://yourapp.com/api/mw-proxy',
-
-  // Optional: attach auth headers your proxy requires
-  getHeaders: async () => ({
-    Authorization: `Bearer ${await getSessionToken()}`,
-  }),
+  proxyUrl: 'https://yourapp.com/mw-proxy',
 })
 
 export function CheckoutPage() {
@@ -112,16 +198,16 @@ export function CheckoutPage() {
   const { configureClient, mountWidget } = window.MWOfframpWidget
 
   configureClient({
-    proxyUrl: 'https://yourapp.com/api/mw-proxy',
+    proxyUrl: 'https://yourapp.com/mw-proxy',
   })
 
   const unmount = mountWidget('#mw-widget', {
-    onSuccess: function(transferId) {
+    onSuccess: function (transferId) {
       console.log('Transfer initiated:', transferId)
     },
   })
 
-  // To tear down the widget later:
+  // To tear down later:
   // unmount()
 </script>
 ```
@@ -133,46 +219,44 @@ export function CheckoutPage() {
 ```ts
 configureClient({
   /**
-   * Required. Base URL of your backend proxy.
+   * Required. Base URL of your proxy server.
    * The widget appends paths like /payouts/quote, /payouts/recipients, etc.
-   * Do not include a trailing slash.
+   * No trailing slash.
    */
-  proxyUrl: 'https://yourapp.com/api/mw-proxy',
+  proxyUrl: 'https://yourapp.com/mw-proxy',
 
   /**
-   * Optional. Returns headers merged into every API request.
-   * Use this to attach session tokens, CSRF tokens, or any auth your
-   * proxy requires. May be async.
+   * Optional. Returns extra headers sent on every request to the proxy.
+   * Use this for any auth your proxy requires (session token, CSRF, etc.).
+   * May be async.
    */
   getHeaders: async () => ({
-    Authorization: `Bearer ${sessionToken}`,
-    'X-CSRF-Token': csrfToken,
+    'x-my-app-token': await getSessionToken(),
   }),
 })
 ```
 
 ---
 
-## 6. `mountWidget` options
+## 6. `mountWidget` reference
 
 ```ts
 const unmount = mountWidget(
-  '#my-container',   // CSS selector or HTMLElement
+  '#my-container',  // CSS selector or HTMLElement
   {
-    onSuccess: (transferId: string) => void,  // transfer initiated
-    onError:   (error: Error) => void,        // widget-level error
+    onSuccess: (transferId: string) => void,
+    onError:   (error: Error) => void,
   }
 )
 
-// Unmount and clean up when done
-unmount()
+unmount()  // tears down the widget and cleans up
 ```
 
 ---
 
 ## 7. Sizing
 
-The widget card is `max-w-md` (~448 px) wide and expands vertically with content. Give the container enough width and let it size naturally in height, or constrain it with `overflow: auto`:
+The widget card is `max-w-md` (~448 px) wide and expands vertically with content:
 
 ```css
 #mw-widget {
@@ -185,6 +269,7 @@ The widget card is `max-w-md` (~448 px) wide and expands vertically with content
 
 ## 8. Security
 
-- `WIDGET_API_KEY` and `WIDGET_USER_ID` must only exist on your backend proxy — never in the browser bundle.
-- The widget sends plain JSON to your proxy. Your proxy is responsible for authenticating the request, injecting the API key, and forwarding to Madhouse Wallet.
-- reCAPTCHA, WhatsApp support links, and any other front-end integrations are handled entirely by your application — the widget does not include them.
+- `WIDGET_API_KEY` and `WIDGET_USER_ID` live only in the proxy process — never in the browser bundle.
+- The proxy enforces a strict path allowlist so only the ten endpoints the widget needs are reachable upstream.
+- Add your own auth middleware to the proxy (see section 2) to prevent unauthorized use.
+- reCAPTCHA, WhatsApp support, and any other integrations are your application's responsibility — the widget does not include them.
