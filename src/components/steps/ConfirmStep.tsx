@@ -1,17 +1,15 @@
 import React, { useState } from 'react'
 import { Button } from '../ui/Button'
 import { createTransfer } from '../../api/client'
-import type { OrderState, WisePaymentOption } from '../../types'
+import type { OrderState } from '../../types'
 
 function floorTwo(n: number): string {
   return (Math.floor(n * 100) / 100).toFixed(2)
 }
 
-
-function getEstimatedDelivery(options?: WisePaymentOption[]): string | null {
-  const opt = options?.find((o) => o.payIn === 'BALANCE' && !o.disabled)
-  if (!opt?.estimatedDelivery) return null
-  return new Date(opt.estimatedDelivery).toLocaleDateString(undefined, {
+function formatDelivery(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  return new Date(iso).toLocaleDateString(undefined, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -59,7 +57,7 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
     userEmail,
   } = orderState
 
-  const delivery = getEstimatedDelivery(quote?.quote.paymentOptions)
+  const delivery = formatDelivery(quote?.quote.estimatedDelivery)
 
   async function handleConfirm() {
     if (!quoteId || !recipientId || !amount) {
@@ -79,8 +77,8 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
         recipientId,
         customer_uuid: customerUuid,
         customer_email: userEmail ?? '',
-        ...(sourceToken ? { source_token: sourceToken } : {}),
-        ...(sourceNetwork ? { source_network: sourceNetwork } : {}),
+        source_token: sourceToken ?? 'usdc',
+        source_network: sourceNetwork ?? 'base',
       })
       onNext({
         customerId: customerUuid,
@@ -122,18 +120,22 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
 
         {quote && (
           <>
-            <SummaryRow
-              label="Exchange rate"
-              value={currency === 'EUR'
-                ? `1 USD ≈ ${quote.bridgeRate} EUR`
-                : `1 USD ≈ ${floorTwo(parseFloat(quote.bridgeRate) * quote.quote.rate)} ${currency}`}
-            />
-            {quote.quote.fee?.total != null && (
+            {quote.serviceFee > 0 && (
               <SummaryRow
-                label="Wise fee"
-                value={`${floorTwo(quote.quote.fee.total)} ${quote.quote.source}`}
+                label={`Service fee (${floorTwo(quote.serviceFeePercent)}%)`}
+                value={`−$${floorTwo(quote.serviceFee)}`}
               />
             )}
+            {quote.quote.transferFee != null && (
+              <SummaryRow
+                label="Transfer fee"
+                value={`−$${floorTwo(quote.quote.transferFee)}`}
+              />
+            )}
+            <SummaryRow
+              label="Exchange rate"
+              value={`1 USD ≈ ${floorTwo(quote.usdToTargetRate)} ${quote.targetCurrency}`}
+            />
           </>
         )}
 
@@ -153,10 +155,10 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
 
         {delivery && <SummaryRow label="Estimated delivery" value={delivery} />}
 
-        {quote && (
+        {quote && quote.quote.targetAmount != null && (
           <SummaryRow
             label="Recipient gets"
-            value={`${floorTwo(quote.quote.targetAmount)} ${currency}`}
+            value={`${floorTwo(quote.quote.targetAmount)} ${quote.targetCurrency}`}
             highlight
           />
         )}

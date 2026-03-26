@@ -12,7 +12,6 @@ const ALLOWED_PATH_PREFIXES = [
   'payouts/recipients',
   'payouts/account-requirements',
   'payouts/deposit-options',
-  'payouts/transfer-status',
   'payouts/transfer/cancel',
   'payouts/fee',
 ]
@@ -93,6 +92,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } else {
       return res.status(400).json({ error: 'Request body must be encrypted' })
     }
+  }
+
+  // Inject server-side user_id into bodies that require it
+  const joined = pathParts.join('/')
+  const needsUserId =
+    (joined === 'payouts/recipients' && method === 'POST') ||
+    (joined === 'payouts/transfer' && method === 'POST')
+  if (needsUserId) {
+    const userId = process.env.WIDGET_USER_ID
+    if (!userId) {
+      return res.status(503).json({ error: 'WIDGET_USER_ID is not configured' })
+    }
+    plainBody = { ...(plainBody as Record<string, unknown>), user_id: userId }
   }
 
   const apiBase = process.env.WIDGET_API_BASE_URL ?? 'https://business.madhousewallet.com'

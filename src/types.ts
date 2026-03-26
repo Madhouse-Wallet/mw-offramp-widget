@@ -57,23 +57,18 @@ export interface OrderState {
 
 // ─── API response types ───────────────────────────────────────────────────────
 
-export interface WisePaymentOption {
-  payIn: string
-  fee: { transfer: number | null }
-  estimatedDelivery: string | null
-}
-
 export interface QuoteResponse {
   quoteId: string
   sourceAmount: number
-  developerFee: number
-  developerFeePercent: number
+  serviceFee: number
+  serviceFeePercent: number
   netUsdAmount: number
   targetCurrency: string
   usdToTargetRate: number
   quote: {
     targetAmount: number | null
-    paymentOptions?: WisePaymentOption[]
+    transferFee: number | null
+    estimatedDelivery: string | null
   }
 }
 
@@ -82,6 +77,19 @@ export interface FeeResponse {
   mwFeePercentage: number
   isDiscounted: boolean
   capApplied: boolean
+}
+
+// Quote snapshot stored on a transfer record
+export interface TransferQuoteSnapshot {
+  sourceAmount: number
+  serviceFee: number
+  serviceFeePercent: number
+  netUsdAmount: number
+  targetCurrency: string
+  usdToTargetRate: number
+  targetAmount: number | null
+  transferFee: number | null
+  estimatedDelivery: string | null
 }
 
 // ─── Account requirements ─────────────────────────────────────────────────────
@@ -140,8 +148,8 @@ export interface CreateTransferPayload {
   recipientId: number
   customer_uuid: string
   customer_email: string
-  source_token?: string
-  source_network?: string
+  source_token: string
+  source_network: string
 }
 
 export interface TransferResponse {
@@ -153,13 +161,24 @@ export interface TransferResponse {
 
 // ─── Transfer status ───────────────────────────────────────────────────────────
 
-export interface TransferStatusResponse {
-  transfer_id: string
-  status: string
-  status_label: string
+export interface TransferRecord {
+  id: string
+  type: string
   amount: number
   currency: string | null
-  created_at: string
+  status: string
+  status_label: string
+  recipientId: number
+  customerUuid: string | null
+  customerEmail: string | null
+  sourceToken: string | null
+  sourceNetwork: string | null
+  quote: TransferQuoteSnapshot | null
+  error: string | null
+  timestamp: string
   updated_at: string
-  terminal: boolean
+}
+
+export interface TransferStatusResponse {
+  transfer: TransferRecord
 }

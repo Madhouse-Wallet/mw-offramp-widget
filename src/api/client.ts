@@ -7,6 +7,7 @@ import type {
   CreateTransferPayload,
   TransferResponse,
   TransferStatusResponse,
+  TransferRecord,
   DepositOptionsResponse,
   DepositOption,
 } from '../types'
@@ -201,13 +202,14 @@ export async function verifyCaptchaToken(token: string | null): Promise<void> {
 
 // ─── Public API functions ─────────────────────────────────────────────────────
 
-export async function getTransferStatus(transferId: string): Promise<TransferStatusResponse> {
+export async function getTransferStatus(transferId: string): Promise<TransferRecord> {
   if (!/^[0-9a-f]{24}$/i.test(transferId)) {
     throw new Error('Invalid transfer ID format')
   }
-  return apiFetch<TransferStatusResponse>(
-    `/api/proxy/payouts/transfer-status/${encodeURIComponent(transferId)}`,
+  const res = await apiFetch<TransferStatusResponse>(
+    `/api/proxy/payouts/transfer/${encodeURIComponent(transferId)}`,
   )
+  return res.transfer
 }
 
 export async function getDepositOptions(): Promise<DepositOption[]> {

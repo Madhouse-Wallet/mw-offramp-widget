@@ -3,8 +3,8 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { CurrencySelect } from '../ui/CurrencySelect'
 import { Spinner } from '../ui/Spinner'
-import { getQuote, getFee, getDepositOptions, getTransferStatus, executeCaptcha, verifyCaptchaToken } from '../../api/client'
-import type { OrderState, QuoteResponse, FeeResponse, DepositOption, TransferStatusResponse } from '../../types'
+import { getQuote, getDepositOptions, getTransferStatus, executeCaptcha, verifyCaptchaToken } from '../../api/client'
+import type { OrderState, QuoteResponse, DepositOption, TransferRecord } from '../../types'
 
 const CURRENCIES = [
   { value: 'AED', label: 'AED — UAE Dirham',             flag: '🇦🇪' },
@@ -74,7 +74,6 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
   )
   const [email, setEmail] = useState(initialState.userEmail ?? '')
   const [emailError, setEmailError] = useState<string | null>(null)
-  const [fee, setFee] = useState<FeeResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [amountError, setAmountError] = useState<string | null>(null)
@@ -85,7 +84,7 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
   // Transfer status lookup
   const [lookupId, setLookupId] = useState('')
-  const [lookupResult, setLookupResult] = useState<TransferStatusResponse | null>(null)
+  const [lookupResult, setLookupResult] = useState<TransferRecord | null>(null)
   const [lookupError, setLookupError] = useState<string | null>(null)
   const [lookupLoading, setLookupLoading] = useState(false)
 
@@ -105,10 +104,6 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
           setSelectedOption(restored)
         }
       })
-      .catch(() => {/* Non-fatal */})
-
-    getFee()
-      .then(setFee)
       .catch(() => {/* Non-fatal */})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -227,16 +222,12 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
   }
 
   const usd = parseFloat(amountStr)
-  const developerFee = quote?.developerFee ?? 0
-  const developerFeePercent = quote?.developerFeePercent ?? 0
+  const serviceFee = quote?.serviceFee ?? 0
+  const serviceFeePercent = quote?.serviceFeePercent ?? 0
   const canContinue = !loading && !error && quote !== null && !amountError
 
-  const transferOption = quote?.quote.paymentOptions?.[0] ?? null
-  const transferFeeUsd =
-    transferOption?.fee.transfer != null && quote?.usdToTargetRate
-      ? transferOption.fee.transfer / quote.usdToTargetRate
-      : null
-  const estimatedDelivery = transferOption?.estimatedDelivery ?? null
+  const transferFeeUsd = quote?.quote.transferFee ?? null
+  const estimatedDelivery = quote?.quote.estimatedDelivery ?? null
 
   return (
     <div className="space-y-5">
@@ -338,10 +329,10 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
             </span>
           </div>
 
-          {developerFee > 0 && (
+          {serviceFee > 0 && (
             <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-              <span className="text-gray-500">Service fee ({floorTwo(developerFeePercent)}%)</span>
-              <span className="font-medium text-gray-900">−${floorTwo(developerFee)}</span>
+              <span className="text-gray-500">Service fee ({floorTwo(serviceFeePercent)}%)</span>
+              <span className="font-medium text-gray-900">−${floorTwo(serviceFee)}</span>
             </div>
           )}
 
@@ -351,15 +342,6 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
               <span className="font-medium text-gray-900">
                 −${floorTwo(transferFeeUsd)}
               </span>
-            </div>
-          )}
-
-          {fee && fee.mwFee > 0 && (
-            <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-              <span className="text-gray-500">
-                Platform fee ({floorTwo(fee.mwFeePercentage)}%{fee.isDiscounted ? ' · discounted' : ''})
-              </span>
-              <span className="font-medium text-gray-900">−${floorTwo(fee.mwFee)}</span>
             </div>
           )}
 
@@ -446,21 +428,31 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-500">Amount</span>
+              <span className="text-gray-500">Amount sent</span>
               <span className="font-medium text-gray-900">
                 ${(Math.floor(lookupResult.amount * 100) / 100).toFixed(2)} USD
               </span>
             </div>
-            {lookupResult.currency && (
+            {lookupResult.quote?.targetAmount != null && lookupResult.quote.targetCurrency && (
               <div className="flex items-center justify-between">
-                <span className="text-gray-500">Currency</span>
-                <span className="font-medium text-gray-900">{lookupResult.currency}</span>
+                <span className="text-gray-500">Recipient gets</span>
+                <span className="font-medium text-gray-900">
+                  {(Math.floor(lookupResult.quote.targetAmount * 100) / 100).toFixed(2)} {lookupResult.quote.targetCurrency}
+                </span>
+              </div>
+            )}
+            {lookupResult.quote?.usdToTargetRate != null && lookupResult.quote.targetCurrency && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Rate</span>
+                <span className="font-medium text-gray-900">
+                  1 USD ≈ {(Math.floor(lookupResult.quote.usdToTargetRate * 10000) / 10000).toFixed(4)} {lookupResult.quote.targetCurrency}
+                </span>
               </div>
             )}
             <div className="flex items-center justify-between">
               <span className="text-gray-500">Created</span>
               <span className="font-medium text-gray-900">
-                {new Date(lookupResult.created_at).toLocaleDateString(undefined, {
+                {new Date(lookupResult.timestamp).toLocaleDateString(undefined, {
                   month: 'short', day: 'numeric', year: 'numeric',
                 })}
               </span>
