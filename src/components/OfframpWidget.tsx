@@ -201,10 +201,6 @@ export function OfframpWidget({ onSuccess }: WidgetProps) {
     setTransferCreatedAt(undefined)
     setOrderState({})
     setStep('amount')
-    // Notify parent window when embedded in an iframe
-    if (window.parent !== window) {
-      window.parent.postMessage({ type: 'mw:success', transferId }, '*')
-    }
     if (onSuccess) onSuccess(transferId)
   }
 

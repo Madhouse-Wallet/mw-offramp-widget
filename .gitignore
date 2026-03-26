@@ -2,6 +2,8 @@ node_modules/
 .next/
 dist/
 dist-embed
+dist-lib
+tsconfig.lib.json
 .env
 .env.local
 .env*.local

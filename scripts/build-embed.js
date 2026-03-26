@@ -83,13 +83,11 @@ const loaderScript = `/**
  * on the container div):
  *
  *   window.MWOfframpConfig = {
- *     host:      "${HOST}",   // where the widget app is hosted
- *     containerId: "mw-offramp-root",          // id of the mount element
- *     width:     "480px",
- *     height:    "720px",
+ *     host:        "${HOST}",      // where the widget app is hosted
+ *     containerId: "mw-offramp-root",  // id of the mount element
+ *     width:       "480px",
+ *     height:      "720px",
  *     borderRadius: "12px",
- *     onSuccess: function(transferId) {},      // called when transfer is initiated
- *     onError:   function(errorMessage) {},    // called on widget errors
  *   };
  */
 (function () {
@@ -121,18 +119,6 @@ const loaderScript = `/**
       ";box-shadow:0 4px 24px rgba(0,0,0,0.12);display:block;";
 
     container.appendChild(iframe);
-
-    // postMessage bridge — relay success/error events from the widget iframe
-    window.addEventListener("message", function (event) {
-      if (event.origin !== new URL(host).origin) return;
-      var data = event.data || {};
-      if (data.type === "mw:success" && typeof cfg.onSuccess === "function") {
-        cfg.onSuccess(data.transferId);
-      }
-      if (data.type === "mw:error" && typeof cfg.onError === "function") {
-        cfg.onError(data.message);
-      }
-    });
   }
 
   if (document.readyState === "loading") {

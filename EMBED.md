@@ -1,156 +1,190 @@
 # Embedding the Madhouse Wallet Offramp Widget
 
-The widget is a Next.js application with server-side API routes — it cannot be bundled as a plain JS library. The correct way to embed it is via an **iframe** pointing at a deployed (or self-hosted) instance of this app.
+The widget ships as a self-contained JS library — CSS is injected automatically, no stylesheet import required. React is a peer dependency and is not bundled.
 
 ---
 
-## 1. Deploy the widget app
-
-Before embedding you need a running instance of this app. Any Node.js host works.
-
-### Environment variables required on the host
-
-| Variable | Purpose |
-|---|---|
-| `WIDGET_API_KEY` | Madhouse Wallet API key (`mw_live_...`) |
-| `WIDGET_JWT_SECRET` | Min 32-char secret — generate with `node scripts/gen-secrets.js` |
-| `WIDGET_ENCRYPT_SECRET` | 32-byte hex secret — generate with `node scripts/gen-secrets.js` |
+## 1. Build the library
 
 ```bash
-node scripts/gen-secrets.js   # prints both secrets
+npm run build:lib
 ```
 
----
-
-## 2. Build the embed artifacts
-
-```bash
-# Build the Next.js app AND produce dist-embed/ artifacts
-node scripts/build-embed.js --host https://widget.yourapp.com
-
-# Skip the Next.js build if you've already built
-node scripts/build-embed.js --host https://widget.yourapp.com --no-build
-```
-
-This writes two files to `dist-embed/`:
+This produces `dist-lib/`:
 
 | File | Use |
 |---|---|
-| `iframe-snippet.html` | Static HTML snippet — paste directly into any page |
-| `widget-loader.js` | JS loader — mounts the iframe dynamically into a `<div>` |
+| `mw-offramp-widget.es.js` | ESM — for bundlers (Webpack, Vite, Next.js, etc.) |
+| `mw-offramp-widget.umd.js` | UMD — for `<script>` tags and CDN use |
+| `lib/index.d.ts` | TypeScript declarations |
+
+The build script installs its own Vite dev-dependencies on first run — you don't need to install anything manually.
 
 ---
 
-## 3a. Static iframe snippet
+## 2. Your backend proxy
 
-Copy `dist-embed/iframe-snippet.html` and paste it wherever you want the widget:
+The widget calls your backend to reach the Madhouse Wallet API. You must host a proxy that:
 
-```html
-<!-- Madhouse Wallet Offramp Widget -->
-<iframe
-  src="https://widget.yourapp.com"
-  id="mw-offramp-widget"
-  title="Madhouse Wallet Offramp"
-  width="480"
-  height="720"
-  style="border:none;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.12);"
-  allow="clipboard-write"
-  loading="lazy"
-></iframe>
-```
+- Holds `WIDGET_API_KEY` and `WIDGET_USER_ID` server-side (never expose these to the browser)
+- Forwards requests to `https://business.madhousewallet.com/api/payouts/...`
+- Injects `Authorization: Bearer <WIDGET_API_KEY>` and `user_id: <WIDGET_USER_ID>` on the upstream request
 
-No JavaScript required. Events (success/error) are not surfaced in this mode.
+You can copy the existing Next.js proxy from this repo (`src/pages/api/proxy/[...path].ts`) as a starting point — strip the JWT verification and JWE encryption if you use your own auth scheme, or keep them if you want the same security model.
+
+### Required proxy endpoints
+
+The widget calls these paths relative to `proxyUrl`:
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/payouts/quote` | Fetch exchange rate + fee quote |
+| GET | `/payouts/deposit-options` | Fetch supported token/network pairs |
+| GET | `/payouts/fee` | Fetch fee schedule |
+| GET | `/payouts/account-requirements` | Fetch dynamic bank account fields |
+| POST | `/payouts/account-requirements` | Refresh fields on change |
+| POST | `/payouts/recipients` | Create recipient |
+| DELETE | `/payouts/recipients/:id` | Delete recipient |
+| POST | `/payouts/transfer` | Initiate transfer |
+| GET | `/payouts/transfer/:id` | Check transfer status |
+| POST | `/payouts/transfer/cancel` | Cancel pending transfer |
 
 ---
 
-## 3b. JS loader (recommended)
+## 3. Installation
 
-Copy `dist-embed/widget-loader.js` to your static assets and include it on any page.
+### Option A — npm package (ESM / bundler)
 
-### Minimal setup
+Copy `dist-lib/` into your project or publish it to npm, then:
 
-```html
-<div id="mw-offramp-root"></div>
-<script src="/assets/widget-loader.js"></script>
+```bash
+npm install ./path/to/dist-lib
+# or after publishing:
+npm install mw-offramp-widget
 ```
 
-The loader auto-mounts into `#mw-offramp-root` using the host URL baked in at build time.
+### Option B — script tag (UMD)
 
-### With config options
-
-Set `window.MWOfframpConfig` **before** the script tag:
+Host `dist-lib/mw-offramp-widget.umd.js` on your CDN or static server. React and ReactDOM must be loaded first:
 
 ```html
-<div id="mw-offramp-root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="/assets/mw-offramp-widget.umd.js"></script>
+```
+
+---
+
+## 4. Usage
+
+### React app (ESM)
+
+```tsx
+import { configureClient, OfframpWidget } from 'mw-offramp-widget'
+
+// Call once before rendering — points the widget at your proxy
+configureClient({
+  proxyUrl: 'https://yourapp.com/api/mw-proxy',
+
+  // Optional: attach auth headers your proxy requires
+  getHeaders: async () => ({
+    Authorization: `Bearer ${await getSessionToken()}`,
+  }),
+})
+
+export function CheckoutPage() {
+  return (
+    <OfframpWidget
+      onSuccess={(transferId) => {
+        console.log('Transfer initiated:', transferId)
+      }}
+    />
+  )
+}
+```
+
+### Vanilla JS / script tag (UMD)
+
+```html
+<div id="mw-widget"></div>
 
 <script>
-  window.MWOfframpConfig = {
-    host: "https://widget.yourapp.com",  // override baked-in host if needed
-    containerId: "mw-offramp-root",
-    width: "480px",
-    height: "720px",
-    borderRadius: "12px",
+  const { configureClient, mountWidget } = window.MWOfframpWidget
 
-    // Called when the user successfully initiates a transfer
+  configureClient({
+    proxyUrl: 'https://yourapp.com/api/mw-proxy',
+  })
+
+  const unmount = mountWidget('#mw-widget', {
     onSuccess: function(transferId) {
-      console.log("Transfer initiated:", transferId);
-      // e.g. redirect, show confirmation UI, analytics event, etc.
+      console.log('Transfer initiated:', transferId)
     },
+  })
 
-    // Called if the widget emits an error event
-    onError: function(errorMessage) {
-      console.error("Widget error:", errorMessage);
-    },
-  };
+  // To tear down the widget later:
+  // unmount()
 </script>
-<script src="/assets/widget-loader.js"></script>
 ```
 
-### How events work
+---
 
-The widget uses `window.postMessage` to communicate with the parent page. The loader listens for these messages and calls your `onSuccess` / `onError` callbacks:
+## 5. `configureClient` options
 
-| `event.data.type` | Payload | Meaning |
-|---|---|---|
-| `mw:success` | `{ transferId: string }` | Transfer successfully initiated |
-| `mw:error` | `{ message: string }` | Widget encountered an error |
+```ts
+configureClient({
+  /**
+   * Required. Base URL of your backend proxy.
+   * The widget appends paths like /payouts/quote, /payouts/recipients, etc.
+   * Do not include a trailing slash.
+   */
+  proxyUrl: 'https://yourapp.com/api/mw-proxy',
 
-You can also listen directly without the loader:
+  /**
+   * Optional. Returns headers merged into every API request.
+   * Use this to attach session tokens, CSRF tokens, or any auth your
+   * proxy requires. May be async.
+   */
+  getHeaders: async () => ({
+    Authorization: `Bearer ${sessionToken}`,
+    'X-CSRF-Token': csrfToken,
+  }),
+})
+```
 
-```js
-window.addEventListener("message", function(event) {
-  if (event.origin !== "https://widget.yourapp.com") return;
-  if (event.data.type === "mw:success") {
-    console.log("Transfer ID:", event.data.transferId);
+---
+
+## 6. `mountWidget` options
+
+```ts
+const unmount = mountWidget(
+  '#my-container',   // CSS selector or HTMLElement
+  {
+    onSuccess: (transferId: string) => void,  // transfer initiated
+    onError:   (error: Error) => void,        // widget-level error
   }
-});
+)
+
+// Unmount and clean up when done
+unmount()
 ```
 
 ---
 
-## 4. Sizing
+## 7. Sizing
 
-The widget card is `max-w-md` (~448 px) wide. Recommended iframe sizes:
+The widget card is `max-w-md` (~448 px) wide and expands vertically with content. Give the container enough width and let it size naturally in height, or constrain it with `overflow: auto`:
 
-| Layout | Width | Height |
-|---|---|---|
-| Desktop sidebar / modal | `480px` | `720px` |
-| Mobile full-screen | `100%` | `100vh` |
-| Embedded in a card | `100%` | `700px` |
-
-The widget is responsive and will compress to fit narrower containers.
-
----
-
-## 5. Clipboard support
-
-The Send step has a "Copy address" button. For it to work in an embedded iframe, include `allow="clipboard-write"` on the `<iframe>` element (already included in the generated snippets).
+```css
+#mw-widget {
+  width: 480px;
+  max-width: 100%;
+}
+```
 
 ---
 
-## 6. Security notes
+## 8. Security
 
-- The `WIDGET_API_KEY` never leaves the server — it is proxied server-side.
-- The iframe's origin is separate from your app; cookies and localStorage are not shared.
-- The `postMessage` listener in the loader validates `event.origin` against the configured host. Always set `host` to the exact origin (scheme + domain + port) of your widget deployment.
-- CORS on the proxy is `*` by default (intentional for embeddable use). If your widget is deployed in a controlled environment you can restrict this in `src/pages/api/proxy/[...path].ts`.
+- `WIDGET_API_KEY` and `WIDGET_USER_ID` must only exist on your backend proxy — never in the browser bundle.
+- The widget sends plain JSON to your proxy. Your proxy is responsible for authenticating the request, injecting the API key, and forwarding to Madhouse Wallet.
+- reCAPTCHA, WhatsApp support links, and any other front-end integrations are handled entirely by your application — the widget does not include them.
