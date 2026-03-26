@@ -8,6 +8,7 @@ export type {
   DepositOptionsResponse,
   QuoteResponse,
   FeeResponse,
+  AmountLimitsResponse,
   TransferQuoteSnapshot,
   RequirementsField,
   RequirementsGroup,

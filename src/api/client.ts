@@ -1,6 +1,7 @@
 import type {
   QuoteResponse,
   FeeResponse,
+  AmountLimitsResponse,
   RequirementsResponse,
   RecipientResponse,
   CreateRecipientPayload,
@@ -221,6 +222,10 @@ export async function getFee(): Promise<FeeResponse> {
   return apiFetch<FeeResponse>('/api/proxy/payouts/fee')
 }
 
+export async function getAmountLimits(): Promise<AmountLimitsResponse> {
+  return apiFetch<AmountLimitsResponse>('/api/proxy/payouts/amount-limits')
+}
+
 export async function getQuote(
   currency: string,
   amount: number,
@@ -228,7 +233,7 @@ export async function getQuote(
   if (!ALLOWED_CURRENCIES.has(currency)) {
     throw new Error(`Unsupported currency: ${currency}`)
   }
-  if (!Number.isFinite(amount) || amount < 5 || amount > 5_000) {
+  if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error('Invalid amount')
   }
   const rounded = Math.round(amount * 100) / 100
@@ -302,7 +307,7 @@ export async function cancelTransfer(transferId?: string): Promise<void> {
 export async function createTransfer(
   payload: CreateTransferPayload,
 ): Promise<TransferResponse> {
-  if (!Number.isFinite(payload.amount) || payload.amount < 5 || payload.amount > 5_000) {
+  if (!Number.isFinite(payload.amount) || payload.amount <= 0) {
     throw new Error('Invalid transfer amount')
   }
   validateRecipientId(payload.recipientId)

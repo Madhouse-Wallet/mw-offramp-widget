@@ -79,6 +79,11 @@ export interface FeeResponse {
   capApplied: boolean
 }
 
+export interface AmountLimitsResponse {
+  minAmount: number
+  maxAmount: number
+}
+
 // Quote snapshot stored on a transfer record
 export interface TransferQuoteSnapshot {
   sourceAmount: number

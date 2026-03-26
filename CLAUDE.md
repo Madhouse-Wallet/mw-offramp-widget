@@ -155,6 +155,8 @@ Requires `Authorization: Bearer <widget-jwt>`. Verifies the JWT before forwardin
 
 ## Maintenance rules
 
+- **Every code change must be reflected in both `src/` and `widget-lib/`.** These two builds must stay in sync — `src/` is the Next.js standalone app, `widget-lib/` is the embeddable library. Any addition, removal, or modification to API functions, types, proxy allowlist paths, or UI behaviour must be applied to both. `widget-lib/types.ts` re-exports from `src/types` (single source of truth for types), but `widget-lib/api/client.ts` is a separate file and must be updated independently.
+
 - **Whenever you add or remove an environment variable**, you must update all three of:
   1. `.env.example` — add/remove the entry with a comment
   2. `amplify.yml` — add/remove the corresponding `env | grep -e VAR_NAME >> .env.production || true` line

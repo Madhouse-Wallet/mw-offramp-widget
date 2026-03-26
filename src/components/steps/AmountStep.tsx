@@ -3,7 +3,7 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { CurrencySelect } from '../ui/CurrencySelect'
 import { Spinner } from '../ui/Spinner'
-import { getQuote, getDepositOptions, getTransferStatus, executeCaptcha, verifyCaptchaToken } from '../../api/client'
+import { getQuote, getDepositOptions, getTransferStatus, getAmountLimits, executeCaptcha, verifyCaptchaToken } from '../../api/client'
 import type { OrderState, QuoteResponse, DepositOption, TransferRecord, RecipientSnapshot, TransferQuoteSnapshot } from '../../types'
 
 // ─── Transfer status card ─────────────────────────────────────────────────────
@@ -251,6 +251,11 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
   const [depositOptions, setDepositOptions] = useState<DepositOption[]>([])
   const [selectedOption, setSelectedOption] = useState<DepositOption | null>(null)
 
+  // Amount limits — fetched from API, fallback to safe defaults while loading
+  const [minAmount, setMinAmount] = useState<number>(1)
+  const [maxAmount, setMaxAmount] = useState<number>(1_000_000)
+  const [limitsLoaded, setLimitsLoaded] = useState(false)
+
   // Transfer status lookup
   const [lookupId, setLookupId] = useState('')
   const [lookupResult, setLookupResult] = useState<TransferRecord | null>(null)
@@ -259,7 +264,7 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Fetch deposit options and fee schedule once on mount
+  // Fetch deposit options and amount limits once on mount
   useEffect(() => {
     getDepositOptions()
       .then((opts) => {
@@ -274,6 +279,17 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
         }
       })
       .catch(() => {/* Non-fatal */})
+
+    getAmountLimits()
+      .then((limits) => {
+        setMinAmount(limits.minAmount)
+        setMaxAmount(limits.maxAmount)
+        setLimitsLoaded(true)
+      })
+      .catch(() => {
+        // Non-fatal — keep permissive defaults; server will reject out-of-range amounts
+        setLimitsLoaded(true)
+      })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchQuote = useCallback(
@@ -340,12 +356,12 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
       setAmountError('Enter a valid amount')
       return false
     }
-    if (usd < 5) {
-      setAmountError('Minimum amount is $5.00')
+    if (usd < minAmount) {
+      setAmountError(`Minimum amount is $${minAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
       return false
     }
-    if (usd > 5000) {
-      setAmountError('Maximum amount is $5,000.00')
+    if (usd > maxAmount) {
+      setAmountError(`Maximum amount is $${maxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
       return false
     }
     if (!/^\d+(\.\d{0,2})?$/.test(amountStr)) {
@@ -419,8 +435,8 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
         <Input
           label="Amount (USD)"
           type="number"
-          min="5"
-          max="5000"
+          min={String(minAmount)}
+          max={String(maxAmount)}
           step="0.01"
           placeholder="100.00"
           value={amountStr}
@@ -439,7 +455,11 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
           required
         />
       </div>
-      <p className="text-xs text-gray-400">Minimum $5.00 · Maximum $5,000.00 per transfer</p>
+      {limitsLoaded && (
+        <p className="text-xs text-gray-400">
+          Minimum ${minAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · Maximum ${maxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per transfer
+        </p>
+      )}
 
       {/* Email */}
       <Input
