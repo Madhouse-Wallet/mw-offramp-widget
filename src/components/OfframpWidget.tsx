@@ -39,7 +39,7 @@ function clearSession() {
   }
 }
 
-export function OfframpWidget({ onSuccess, onError }: WidgetProps) {
+export function OfframpWidget({ onSuccess }: WidgetProps) {
   const saved = loadSession()
 
   // If the session was saved mid-send (transferId exists), determine whether the
@@ -201,8 +201,13 @@ export function OfframpWidget({ onSuccess, onError }: WidgetProps) {
     setTransferCreatedAt(undefined)
     setOrderState({})
     setStep('amount')
+    // Notify parent window when embedded in an iframe
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'mw:success', transferId }, '*')
+    }
     if (onSuccess) onSuccess(transferId)
   }
+
 
   return (
     <div>

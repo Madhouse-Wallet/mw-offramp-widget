@@ -1,6 +1,7 @@
 node_modules/
 .next/
 dist/
+dist-embed
 .env
 .env.local
 .env*.local
