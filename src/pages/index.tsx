@@ -196,7 +196,7 @@ export default function Home() {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </Head>
-      <div className="flex min-h-screen flex-col items-center justify-center p-4 pb-8 bg-gray-100">
+      <div className="flex min-h-screen w-full flex-col items-center justify-center p-4 pb-8 bg-gray-100">
         <OfframpWidget
           onSuccess={(transferId) => {
             console.log('Transfer complete:', transferId)
