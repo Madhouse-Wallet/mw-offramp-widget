@@ -153,6 +153,15 @@ Requires `Authorization: Bearer <widget-jwt>`. Verifies the JWT before forwardin
 
 ---
 
+## Maintenance rules
+
+- **Whenever you add or remove an environment variable**, you must update all three of:
+  1. `.env.example` — add/remove the entry with a comment
+  2. `amplify.yml` — add/remove the corresponding `env | grep -e VAR_NAME >> .env.production || true` line
+  3. The env vars table in this file (below)
+
+---
+
 ## Build & development
 
 ```bash
