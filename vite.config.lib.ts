@@ -14,13 +14,13 @@ export default defineConfig({
   resolve: {
     alias: [
       // Replace the Next.js-specific API client (src/api/client.ts) with the
-      // lib version (lib/api/client.ts) for all components.
+      // lib version (widget-lib/api/client.ts) for all components.
       // Vite aliases match against the resolved absolute path, so we point the
       // *file on disk* at the lib replacement — regardless of how deep the
       // relative import is from the importing file.
       {
         find: resolve(__dirname, 'src/api/client.ts'),
-        replacement: resolve(__dirname, 'lib/api/client.ts'),
+        replacement: resolve(__dirname, 'widget-lib/api/client.ts'),
       },
       {
         find: '@',
@@ -36,11 +36,11 @@ export default defineConfig({
     outDir: 'dist-lib',
     emptyOutDir: true,
     lib: {
-      entry: resolve(__dirname, 'lib/index.ts'),
+      entry: resolve(__dirname, 'widget-lib/index.ts'),
       name: 'MWOfframpWidget',
       // Produces three formats:
-      //   dist-lib/mw-offramp-widget.es.js   — ESM for bundler consumers
-      //   dist-lib/mw-offramp-widget.umd.js  — UMD for script-tag / CDN use
+      //   dist-widget-lib/mw-offramp-widget.es.js   — ESM for bundler consumers
+      //   dist-widget-lib/mw-offramp-widget.umd.js  — UMD for script-tag / CDN use
       formats: ['es', 'umd'],
       fileName: (format) => `mw-offramp-widget.${format}.js`,
     },

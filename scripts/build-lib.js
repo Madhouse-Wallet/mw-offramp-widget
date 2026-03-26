@@ -136,7 +136,7 @@ run(
 )
 
 // 3. TypeScript declarations
-//    Uses a minimal tsconfig that only processes lib/ + src/components + src/types.
+//    Uses a minimal tsconfig that only processes widget-lib/ + src/components + src/types.
 const tsconfig = {
   compilerOptions: {
     target: 'ES2017',
@@ -153,7 +153,7 @@ const tsconfig = {
     skipLibCheck: true,
   },
   include: [
-    'lib/**/*',
+    'widget-lib/**/*',
     'src/components/**/*',
     'src/types.ts',
     'src/lib/**/*',
@@ -170,13 +170,13 @@ fs.unlinkSync(tsconfigPath)
 
 // 4. Copy server files into dist-lib/
 fs.copyFileSync(
-  path.join(ROOT, 'lib/proxy-server.js'),
+  path.join(ROOT, 'widget-lib/proxy-server.js'),
   path.join(DIST, 'proxy-server.js'),
 )
 console.log('\n✓ dist-lib/proxy-server.js written')
 
 fs.copyFileSync(
-  path.join(ROOT, 'lib/nextjs-proxy-handler.js'),
+  path.join(ROOT, 'widget-lib/nextjs-proxy-handler.js'),
   path.join(DIST, 'nextjs-proxy-handler.js'),
 )
 console.log('✓ dist-lib/nextjs-proxy-handler.js written')
@@ -190,7 +190,7 @@ const distPkg = {
   description: rootPkg.description,
   main: './mw-offramp-widget.umd.js',
   module: './mw-offramp-widget.es.js',
-  types: './lib/index.d.ts',
+  types: './widget-lib/index.d.ts',
   bin: {
     'mw-offramp-proxy': './proxy-server.js',
   },

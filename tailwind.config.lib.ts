@@ -2,7 +2,7 @@ import type { Config } from 'tailwindcss'
 
 export default {
   content: [
-    './lib/**/*.{js,ts,jsx,tsx}',
+    './widget-lib/**/*.{js,ts,jsx,tsx}',
     './src/components/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {

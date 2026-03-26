@@ -4,6 +4,7 @@ dist/
 dist-embed
 dist-lib
 tsconfig.lib.json
+@rollup
 .env
 .env.local
 .env*.local
