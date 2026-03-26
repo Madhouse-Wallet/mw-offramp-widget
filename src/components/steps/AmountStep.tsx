@@ -167,8 +167,16 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
   function validateAmount(): boolean {
     const usd = parseFloat(amountStr)
-    if (!amountStr || isNaN(usd) || usd <= 0) {
+    if (!amountStr || isNaN(usd)) {
       setAmountError('Enter a valid amount')
+      return false
+    }
+    if (usd < 5) {
+      setAmountError('Minimum amount is $5.00')
+      return false
+    }
+    if (usd > 5000) {
+      setAmountError('Maximum amount is $5,000.00')
       return false
     }
     if (!/^\d+(\.\d{0,2})?$/.test(amountStr)) {
@@ -242,7 +250,8 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
         <Input
           label="Amount (USD)"
           type="number"
-          min="0.01"
+          min="5"
+          max="5000"
           step="0.01"
           placeholder="100.00"
           value={amountStr}
@@ -261,6 +270,7 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
           required
         />
       </div>
+      <p className="text-xs text-gray-400">Minimum $5.00 · Maximum $5,000.00 per transfer</p>
 
       {/* Email */}
       <Input

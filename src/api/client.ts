@@ -228,7 +228,7 @@ export async function getQuote(
   if (!ALLOWED_CURRENCIES.has(currency)) {
     throw new Error(`Unsupported currency: ${currency}`)
   }
-  if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000) {
+  if (!Number.isFinite(amount) || amount < 5 || amount > 5_000) {
     throw new Error('Invalid amount')
   }
   const rounded = Math.round(amount * 100) / 100
@@ -302,7 +302,7 @@ export async function cancelTransfer(transferId?: string): Promise<void> {
 export async function createTransfer(
   payload: CreateTransferPayload,
 ): Promise<TransferResponse> {
-  if (!Number.isFinite(payload.amount) || payload.amount <= 0 || payload.amount > 1_000_000) {
+  if (!Number.isFinite(payload.amount) || payload.amount < 5 || payload.amount > 5_000) {
     throw new Error('Invalid transfer amount')
   }
   validateRecipientId(payload.recipientId)
