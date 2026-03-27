@@ -8,7 +8,7 @@ const TITLE = 'Sell Crypto Instantly | Madhouse Wallet Offramp'
 const DESCRIPTION =
   'Convert USDC to 45+ local currencies and receive funds directly to your bank account. Fast, secure crypto offramp powered by Madhouse Wallet and Wise.'
 const OG_IMAGE = `${SITE_URL}api/og`
-
+const GTM_ID = 'GTM-TSN966DB'
 const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -47,14 +47,26 @@ export default function App({ Component, pageProps }: AppProps) {
         <meta property="og:image:alt" content="Madhouse Wallet crypto offramp — sell USDC to local currency" />
         <meta property="og:locale" content="en_US" />
 
-        {/* ── Twitter Card ───────────────────────────────────────────────── */}
+        {/* ── Twitter / X Card ───────────────────────────────────────────── */}
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:domain" content="sellcoins.now" />
         <meta name="twitter:site" content="@MadhouseWallet" />
         <meta name="twitter:creator" content="@MadhouseWallet" />
         <meta name="twitter:title" content={TITLE} />
         <meta name="twitter:description" content={DESCRIPTION} />
         <meta name="twitter:image" content={OG_IMAGE} />
         <meta name="twitter:image:alt" content="Madhouse Wallet crypto offramp" />
+
+        {/* ── Google Tag Manager ─────────────────────────────────────────── */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','${GTM_ID}');`,
+          }}
+        />
 
         {/* ── Google Analytics 4 ─────────────────────────────────────────── */}
         {GA_ID && (
