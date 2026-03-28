@@ -59,7 +59,6 @@ export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepP
     transferAmount,
     transferStatus,
     transferStatusLabel,
-    transferReference,
     sourceToken = 'usdc',
     sourceNetwork = 'base',
   } = orderState
@@ -264,12 +263,6 @@ export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepP
               </button>
             </div>
           </div>
-          {transferReference && (
-            <div>
-              <p className="mb-0.5 text-xs text-gray-400">Payment reference</p>
-              <p className="font-mono text-xs text-gray-600 break-all">{transferReference}</p>
-            </div>
-          )}
           {transferStatus && (
             <div>
               <p className="mb-0.5 text-xs text-gray-400">Status</p>

@@ -74,7 +74,7 @@ function RecipientSection({ recipient }: { recipient: RecipientSnapshot }) {
       <DetailRow label="Account type" value={recipient.type.toUpperCase()} />
       {recipient.country && <DetailRow label="Country" value={recipient.country} />}
       {Object.entries(recipient.details)
-        .filter(([, val]) => val != null && val !== '')
+        .filter(([key, val]) => val != null && val !== '' && !key.toLowerCase().includes('address'))
         .map(([key, val]) => (
           <DetailRow
             key={key}
