@@ -171,7 +171,6 @@ function TransferStatusCard({ transfer }: { transfer: TransferRecord }) {
       </div>
 
       {/* Expandable sections */}
-      {transfer.recipient && <RecipientSection recipient={transfer.recipient} />}
       {transfer.quote && <QuoteSection quote={transfer.quote} />}
     </div>
   )
