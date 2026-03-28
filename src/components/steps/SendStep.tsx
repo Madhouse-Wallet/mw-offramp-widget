@@ -54,11 +54,12 @@ export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepP
   }, [done, onTimeout])
 
   const {
-    amount = 0,
     transferId,
     depositAddress,
-    depositAmount,
-    depositCurrency = 'USDC',
+    transferAmount,
+    transferStatus,
+    transferStatusLabel,
+    transferReference,
     sourceToken = 'usdc',
     sourceNetwork = 'base',
   } = orderState
@@ -171,12 +172,12 @@ export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepP
         </p>
         <div className="flex items-center justify-between">
           <span className="text-xl font-bold text-gray-900">
-            ${(Math.floor(amount * 100) / 100).toFixed(2)} USD
+            {transferAmount != null ? `$${(Math.floor(transferAmount * 100) / 100).toFixed(2)} USD` : '—'}
           </span>
-          {depositAmount && (
+          {transferAmount != null && (
             <button
               type="button"
-              onClick={() => copyToClipboard(depositAmount, setCopiedAmount)}
+              onClick={() => copyToClipboard(String(transferAmount), setCopiedAmount)}
               className="group flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900"
             >
               <CopyIcon copied={copiedAmount} />
@@ -184,6 +185,9 @@ export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepP
             </button>
           )}
         </div>
+        {transferStatusLabel && (
+          <p className="mt-1 text-xs text-gray-500">{transferStatusLabel}</p>
+        )}
       </div>
 
       {/* Deposit address */}
@@ -243,21 +247,35 @@ export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepP
         </p>
       </div>
 
-      {/* Transfer ID reference */}
+      {/* Transfer ID + reference */}
       {transferId && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-          <p className="mb-1 text-xs text-gray-400">Transfer ID (save for reference)</p>
-          <div className="flex items-center justify-between gap-2">
-            <p className="flex-1 truncate font-mono text-xs text-gray-600">{transferId}</p>
-            <button
-              type="button"
-              onClick={() => copyToClipboard(transferId, setCopiedTxId)}
-              className="group flex shrink-0 items-center gap-1 rounded px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-900"
-            >
-              <CopyIcon copied={copiedTxId} />
-              <span>{copiedTxId ? 'Copied!' : 'Copy'}</span>
-            </button>
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+          <div>
+            <p className="mb-1 text-xs text-gray-400">Transfer ID (save for reference)</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex-1 truncate font-mono text-xs text-gray-600">{transferId}</p>
+              <button
+                type="button"
+                onClick={() => copyToClipboard(transferId, setCopiedTxId)}
+                className="group flex shrink-0 items-center gap-1 rounded px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-900"
+              >
+                <CopyIcon copied={copiedTxId} />
+                <span>{copiedTxId ? 'Copied!' : 'Copy'}</span>
+              </button>
+            </div>
           </div>
+          {transferReference && (
+            <div>
+              <p className="mb-0.5 text-xs text-gray-400">Payment reference</p>
+              <p className="font-mono text-xs text-gray-600 break-all">{transferReference}</p>
+            </div>
+          )}
+          {transferStatus && (
+            <div>
+              <p className="mb-0.5 text-xs text-gray-400">Status</p>
+              <p className="text-xs text-gray-600">{transferStatusLabel ?? transferStatus}</p>
+            </div>
+          )}
         </div>
       )}
 

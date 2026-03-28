@@ -160,7 +160,7 @@ function TransferStatusCard({ transfer }: { transfer: TransferRecord }) {
         />
         <DetailRow
           label="Last updated"
-          value={new Date(transfer.updated_at).toLocaleString(undefined, {
+          value={new Date(transfer.updated_at ?? transfer.timestamp).toLocaleString(undefined, {
             month: 'short', day: 'numeric', year: 'numeric',
             hour: '2-digit', minute: '2-digit',
           })}
@@ -171,6 +171,7 @@ function TransferStatusCard({ transfer }: { transfer: TransferRecord }) {
       </div>
 
       {/* Expandable sections */}
+      {transfer.recipient && <RecipientSection recipient={transfer.recipient} />}
       {transfer.quote && <QuoteSection quote={transfer.quote} />}
     </div>
   )

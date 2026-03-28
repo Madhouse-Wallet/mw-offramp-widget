@@ -71,7 +71,7 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
     const customerUuid = crypto.randomUUID()
 
     try {
-      const transfer = await createTransfer({
+      const response = await createTransfer({
         quote_id: quoteId,
         amount,
         recipientId,
@@ -80,12 +80,18 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
         source_token: sourceToken ?? 'usdc',
         source_network: sourceNetwork ?? 'base',
       })
+      const t = response.transfer
       onNext({
         customerId: customerUuid,
-        transferId: transfer.transfer_id,
-        depositAddress: transfer.deposit_address,
-        depositAmount: transfer.amount,
-        depositCurrency: transfer.currency,
+        transferId: t.id,
+        depositAddress: t.deposit_address ?? undefined,
+        transferStatus: t.status,
+        transferStatusLabel: t.status_label,
+        transferReference: t.reference,
+        transferAmount: t.amount,
+        transferCurrency: t.currency ?? undefined,
+        sourceToken: t.sourceToken ?? undefined,
+        sourceNetwork: t.sourceNetwork ?? undefined,
       })
     } catch (err) {
       const e = err as Error & { transfer_id?: string; status?: number }
@@ -94,9 +100,6 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
         onNext({
           customerId: customerUuid,
           transferId: e.transfer_id,
-          depositAddress: undefined,
-          depositAmount: String(amount),
-          depositCurrency: 'USDC',
         })
       } else {
         setError(e.message || 'Failed to initiate transfer')

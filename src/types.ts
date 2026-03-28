@@ -47,12 +47,16 @@ export interface OrderState {
   recipientType?: string
   recipientDetails?: Record<string, unknown>
 
-  // Set by ConfirmStep/SendStep
+  // Set by ConfirmStep/SendStep (populated from POST /api/payouts/transfer response)
   customerId?: string
   transferId?: string
   depositAddress?: string
-  depositAmount?: string
-  depositCurrency?: string
+  // From transfer record
+  transferStatus?: string
+  transferStatusLabel?: string
+  transferReference?: string
+  transferAmount?: number
+  transferCurrency?: string
 }
 
 // ─── API response types ───────────────────────────────────────────────────────
@@ -157,12 +161,8 @@ export interface CreateTransferPayload {
   source_network: string
 }
 
-export interface TransferResponse {
-  transfer_id: string
-  deposit_address: string
-  amount: string
-  currency: string
-}
+// POST /api/payouts/transfer returns the same TransferResponse wrapper as GET
+export type TransferResponse = TransferStatusResponse
 
 // ─── Transfer status ───────────────────────────────────────────────────────────
 
@@ -177,6 +177,7 @@ export interface RecipientSnapshot {
 
 export interface TransferRecord {
   id: string
+  user_id?: string
   type: string
   amount: number
   currency: string | null
@@ -189,9 +190,11 @@ export interface TransferRecord {
   sourceToken: string | null
   sourceNetwork: string | null
   quote: TransferQuoteSnapshot | null
+  deposit_address: string | null
   error: string | null
+  reference: string
   timestamp: string
-  updated_at: string
+  updated_at: string | null
 }
 
 export interface TransferStatusResponse {
