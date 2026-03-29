@@ -40,6 +40,7 @@ export interface OrderState {
   sourceToken?: string   // e.g. "usdc", "usdt", "eth"
   sourceNetwork?: string // e.g. "base", "ethereum", "polygon"
   userEmail?: string
+  walletAddress?: string
 
   // Set by RecipientStep
   recipientId?: number
@@ -159,6 +160,7 @@ export interface CreateTransferPayload {
   customer_email: string
   source_token: string
   source_network: string
+  wallet_address: string
 }
 
 // POST /api/payouts/transfer returns the same TransferResponse wrapper as GET
@@ -190,6 +192,7 @@ export interface TransferRecord {
   sourceToken: string | null
   sourceNetwork: string | null
   quote: TransferQuoteSnapshot | null
+  wallet_address: string | null
   deposit_address: string | null
   error: string | null
   reference: string

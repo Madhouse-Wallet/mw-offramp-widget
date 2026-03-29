@@ -55,12 +55,13 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
     sourceToken,
     sourceNetwork,
     userEmail,
+    walletAddress,
   } = orderState
 
   const delivery = formatDelivery(quote?.quote.estimatedDelivery)
 
   async function handleConfirm() {
-    if (!quoteId || !recipientId || !amount) {
+    if (!quoteId || !recipientId || !amount || !walletAddress) {
       setError('Missing required data. Please go back and try again.')
       return
     }
@@ -79,6 +80,7 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
         customer_email: userEmail ?? '',
         source_token: sourceToken ?? 'usdc',
         source_network: sourceNetwork ?? 'base',
+        wallet_address: walletAddress,
       })
       const t = response.transfer
       onNext({

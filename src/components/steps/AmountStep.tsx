@@ -245,6 +245,8 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
   )
   const [email, setEmail] = useState(initialState.userEmail ?? '')
   const [emailError, setEmailError] = useState<string | null>(null)
+  const [walletAddress, setWalletAddress] = useState(initialState.walletAddress ?? '')
+  const [walletAddressError, setWalletAddressError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [amountError, setAmountError] = useState<string | null>(null)
@@ -392,9 +394,24 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
     return true
   }
 
+  function validateWalletAddress(): boolean {
+    const trimmed = walletAddress.trim()
+    if (!trimmed) {
+      setWalletAddressError('Wallet address is required')
+      return false
+    }
+    if (!/^0x[0-9a-fA-F]{40}$/.test(trimmed)) {
+      setWalletAddressError('Enter a valid Ethereum address (0x + 40 hex characters)')
+      return false
+    }
+    setWalletAddressError(null)
+    return true
+  }
+
   async function handleContinue() {
     if (!validateAmount()) return
     if (!validateEmail()) return
+    if (!validateWalletAddress()) return
     if (!quote) return
 
     setLoading(true)
@@ -417,6 +434,7 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
       sourceToken: selectedOption?.token ?? 'usdc',
       sourceNetwork: selectedOption?.network ?? 'base',
       userEmail: email.trim(),
+      walletAddress: walletAddress.trim(),
     })
   }
 
@@ -478,6 +496,20 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
           setEmailError(null)
         }}
         error={emailError ?? undefined}
+        required
+      />
+
+      {/* Wallet address */}
+      <Input
+        label="Your Wallet Address"
+        type="text"
+        placeholder="0x..."
+        value={walletAddress}
+        onChange={(e) => {
+          setWalletAddress(e.target.value)
+          setWalletAddressError(null)
+        }}
+        error={walletAddressError ?? undefined}
         required
       />
 
