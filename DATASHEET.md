@@ -3,7 +3,7 @@
 **The Walker Ledger LLC**
 Website: [https://www.madhousewallet.com](https://www.madhousewallet.com)
 API Docs: [https://business.madhousewallet.com/developers/api-docs](https://business.madhousewallet.com/developers/api-docs)
-API Changelog: [https://business.madhousewallet.com/developers/changelog](https://business.madhousewallet.com/developers/changelog)
+API Changelog: [https://business.madhousewallet.com/developers/changelog]qui(https://business.madhousewallet.com/developers/changelog)
 Support: quincy@madhousewallet.com
 
 ---
@@ -15,7 +15,7 @@ Support: quincy@madhousewallet.com
 | **Company Name** | The Walker Ledger LLC (Madhouse Wallet) |
 | **Headquarters** | Montana, United States |
 | **Year Founded** | 2024 |
-| **Contact** | Quincy Walker, Founder — quincy@madhousewallet.com |
+| **Contact** | Quincy, Founder — quincy@madhousewallet.com |
 | **Supported Flow Types** | Off-ramp (stablecoin → fiat) |
 | **Widget UI Sample** | https://sellcoins.now/ |
 
@@ -110,7 +110,7 @@ Support: quincy@madhousewallet.com
 | **Settlement Fee** | Variable; typically under 1% for transactions above 500 USDC |
 | **FX Quote Validity** | 5 minutes |
 | **Minimum Volume Commitment** | None |
-| **Enterprise / Volume Pricing** | Revenue share programs available — contact quincy@madhousewallet.com |
+| **Enterprise / Volume Pricing** | Revenue share programs available — contact support@madhousewallet.com |
 
 ---
 
@@ -324,7 +324,7 @@ All clients use USDC as the settlement stablecoin for international transfers.
 
 | Channel | Details |
 |---|---|
-| **Email** | quincy@madhousewallet.com |
+| **Email** | support@madhousewallet.com |
 | **Developer Support** | Dedicated Slack channel (provided at onboarding) |
 | **API Docs** | https://business.madhousewallet.com/developers/api-docs |
 | **Changelog** | https://business.madhousewallet.com/developers/changelog |
