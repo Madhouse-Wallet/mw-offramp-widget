@@ -16,11 +16,15 @@ import { encryptPayload, decryptPayload } from '../lib/payload-crypto'
 
 // Allowed currencies — must match server-side ALLOWED_CURRENCIES
 const ALLOWED_CURRENCIES = new Set([
-  'AED','AUD','BDT','BGN','BRL','CAD','CHF','CZK','DKK','EGP',
-  'EUR','GBP','GHS','HKD','HRK','HUF','IDR','ILS','INR','JPY',
-  'KES','LKR','MAD','MXN','MYR','NGN','NOK','NPR','NZD','PHP',
-  'PKR','PLN','RON','RWF','SAR','SEK','SGD','THB','TRY','TZS',
-  'UGX','USD','VND','XOF','ZAR',
+  'AED','ARS','ALL','AUD','BAM','BDT','BGN','BHD','BMD','BOB',
+  'BRL','BWP','CAD','CHF','CLP','CNY','COP','CRC','CVE','CZK',
+  'DKK','DOP','EGP','EUR','GBP','GEL','GHS','GMD','GNF','GTQ',
+  'HKD','HNL','HUF','IDR','ILS','INR','ISK','JPY','KES','KGS',
+  'KHR','KRW','KWD','LAK','LKR','MAD','MNT','MOP','MUR','MXN',
+  'MYR','NAD','NGN','NIO','NOK','NPR','NZD','OMR','PEN','PHP',
+  'PKR','PLN','PYG','QAR','RON','RSD','RWF','SAR','SCR','SEK',
+  'SGD','SRD','THB','TND','TRY','TZS','UAH','UGX','USD','UYU',
+  'VND','ZAR',
 ])
 
 // ─── Widget JWT token cache ───────────────────────────────────────────────────
