@@ -1,10 +1,10 @@
 # Madhouse Wallet — Off-Ramp API Datasheet
 
-**The Walker Ledger LLC**
+**Madhouse Wallet**
 Website: [https://www.madhousewallet.com](https://www.madhousewallet.com)
 API Docs: [https://business.madhousewallet.com/developers/api-docs](https://business.madhousewallet.com/developers/api-docs)
-API Changelog: [https://business.madhousewallet.com/developers/changelog]qui(https://business.madhousewallet.com/developers/changelog)
-Support: quincy@madhousewallet.com
+API Changelog: [https://business.madhousewallet.com/developers/changelog](https://business.madhousewallet.com/developers/changelog)
+Support: support@madhousewallet.com
 
 ---
 
@@ -12,10 +12,10 @@ Support: quincy@madhousewallet.com
 
 | | |
 |---|---|
-| **Company Name** | The Walker Ledger LLC (Madhouse Wallet) |
-| **Headquarters** | Montana, United States |
+| **Company Name** | Madhouse Wallet |
+| **Headquarters** | United States |
 | **Year Founded** | 2024 |
-| **Contact** | Quincy, Founder — quincy@madhousewallet.com |
+| **Contact** | support@madhousewallet.com |
 | **Supported Flow Types** | Off-ramp (stablecoin → fiat) |
 | **Widget UI Sample** | https://sellcoins.now/ |
 
