@@ -1,10 +1,10 @@
 # Madhouse Wallet — Off-Ramp API Datasheet
 
-**Madhouse Wallet**
-Website: [https://www.madhousewallet.com](https://www.madhousewallet.com)
-API Docs: [https://business.madhousewallet.com/developers/api-docs](https://business.madhousewallet.com/developers/api-docs)
-API Changelog: [https://business.madhousewallet.com/developers/changelog](https://business.madhousewallet.com/developers/changelog)
-Support: support@madhousewallet.com
+**Company:** Madhouse Wallet  
+**Website:** [https://www.madhousewallet.com](https://www.madhousewallet.com)  
+**API Docs:** [https://business.madhousewallet.com/developers/api-docs](https://business.madhousewallet.com/developers/api-docs)  
+**API Changelog:** [https://business.madhousewallet.com/developers/changelog](https://business.madhousewallet.com/developers/changelog)  
+**Support:** [support@madhousewallet.com](mailto:support@madhousewallet.com)
 
 ---
 
