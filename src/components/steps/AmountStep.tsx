@@ -437,9 +437,17 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
       setWalletAddressError('Wallet address is required')
       return false
     }
-    if (!/^0x[0-9a-fA-F]{40}$/.test(trimmed)) {
-      setWalletAddressError('Enter a valid Ethereum address (0x + 40 hex characters)')
-      return false
+    const isSolana = selectedOption?.network === 'solana'
+    if (isSolana) {
+      if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(trimmed)) {
+        setWalletAddressError('Enter a valid Solana address (base58, 32–44 characters)')
+        return false
+      }
+    } else {
+      if (!/^0x[0-9a-fA-F]{40}$/.test(trimmed)) {
+        setWalletAddressError('Enter a valid Ethereum address (0x + 40 hex characters)')
+        return false
+      }
     }
     setWalletAddressError(null)
     return true
