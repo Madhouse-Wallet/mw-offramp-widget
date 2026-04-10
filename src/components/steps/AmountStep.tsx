@@ -98,7 +98,7 @@ function QuoteSection({ quote }: { quote: TransferQuoteSnapshot }) {
       )}
       <DetailRow label="Net converted" value={`$${floorTwo(quote.netUsdAmount)} USD`} />
       {quote.transferFee != null && (
-        <DetailRow label="Transfer fee" value={`−$${floorTwo(quote.transferFee)}`} />
+        <DetailRow label="FX fee" value={`−$${floorTwo(quote.transferFee)}`} />
       )}
       <DetailRow
         label="Exchange rate"
@@ -490,6 +490,7 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
   const transferFeeUsd = quote?.quote.transferFee ?? null
   const estimatedDelivery = quote?.quote.estimatedDelivery ?? null
+  const staticTransferFeeUsd = !isNaN(usd) && usd > 0 ? usd * 0.006 : null
 
   return (
     <div className="space-y-5">
@@ -620,9 +621,18 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
           {transferFeeUsd != null && (
             <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-              <span className="text-gray-500">Transfer fee</span>
+              <span className="text-gray-500">FX fee</span>
               <span className="font-medium text-gray-900">
                 −${floorTwo(transferFeeUsd)}
+              </span>
+            </div>
+          )}
+
+          {staticTransferFeeUsd != null && (
+            <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+              <span className="text-gray-500">Transfer fee (0.6%)</span>
+              <span className="font-medium text-gray-900">
+                −${floorTwo(staticTransferFeeUsd)}
               </span>
             </div>
           )}
