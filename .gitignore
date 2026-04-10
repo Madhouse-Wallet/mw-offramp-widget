@@ -8,3 +8,4 @@ tsconfig.lib.json
 .env
 .env.local
 .env*.local
+.vscode/

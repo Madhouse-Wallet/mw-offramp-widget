@@ -3,8 +3,9 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { CurrencySelect } from '../ui/CurrencySelect'
 import { Spinner } from '../ui/Spinner'
-import { getQuote, getDepositOptions, getTransferStatus, getAmountLimits, executeCaptcha, verifyCaptchaToken } from '../../api/client'
-import type { OrderState, QuoteResponse, DepositOption, TransferRecord, RecipientSnapshot, TransferQuoteSnapshot } from '../../types'
+import { getQuote, getTransferStatus, getAmountLimits, executeCaptcha, verifyCaptchaToken } from '../../api/client'
+import { NETWORK_TO_SOURCE_TOKENS } from '../../lib/wallet-config'
+import type { OrderState, QuoteResponse, TransferRecord, RecipientSnapshot, TransferQuoteSnapshot } from '../../types'
 
 // ─── Transfer status card ─────────────────────────────────────────────────────
 
@@ -268,11 +269,14 @@ function floorTwo(n: number): string {
 
 interface AmountStepProps {
   initialState: Partial<OrderState>
+  walletAddress: string
+  walletNetwork: string
+  walletChainId: number | undefined
   onNext: (data: Partial<OrderState>) => void
   onSessionExpired: () => void
 }
 
-export function AmountStep({ initialState, onNext, onSessionExpired }: AmountStepProps) {
+export function AmountStep({ initialState, walletAddress, walletNetwork, walletChainId, onNext, onSessionExpired }: AmountStepProps) {
   const [amountStr, setAmountStr] = useState(
     initialState.amount != null ? String(initialState.amount) : '',
   )
@@ -282,15 +286,25 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
   )
   const [email, setEmail] = useState(initialState.userEmail ?? '')
   const [emailError, setEmailError] = useState<string | null>(null)
-  const [walletAddress, setWalletAddress] = useState(initialState.walletAddress ?? '')
-  const [walletAddressError, setWalletAddressError] = useState<string | null>(null)
+
+  // Source token (USDC or EURC) — determined by the connected network.
+  // Defaults to the saved value or 'usdc'. Auto-resets to 'usdc' if the
+  // network changes to one that only supports USDC.
+  const [sourceToken, setSourceToken] = useState<'usdc' | 'eurc'>(
+    (initialState.sourceToken as 'usdc' | 'eurc') ?? 'usdc',
+  )
+
+  // Keep sourceToken valid when walletNetwork changes
+  useEffect(() => {
+    const supported = NETWORK_TO_SOURCE_TOKENS[walletNetwork] ?? ['usdc']
+    if (!supported.includes(sourceToken)) {
+      setSourceToken('usdc')
+    }
+  }, [walletNetwork, sourceToken])
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [amountError, setAmountError] = useState<string | null>(null)
-
-  // Deposit token/network selection
-  const [depositOptions, setDepositOptions] = useState<DepositOption[]>([])
-  const [selectedOption, setSelectedOption] = useState<DepositOption | null>(null)
 
   // Amount limits — fetched from API, fallback to safe defaults while loading
   const [minAmount, setMinAmount] = useState<number>(1)
@@ -305,22 +319,8 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Fetch deposit options and amount limits once on mount
+  // Fetch amount limits once on mount
   useEffect(() => {
-    getDepositOptions()
-      .then((opts) => {
-        setDepositOptions(opts)
-        if (opts.length > 0) {
-          const restored = initialState.sourceToken && initialState.sourceNetwork
-            ? opts.find(
-                (o) => o.token === initialState.sourceToken && o.network === initialState.sourceNetwork,
-              ) ?? opts[0]
-            : opts[0]
-          setSelectedOption(restored)
-        }
-      })
-      .catch(() => {/* Non-fatal */})
-
     getAmountLimits()
       .then((limits) => {
         if (typeof limits.min_amount === 'number' && isFinite(limits.min_amount)) {
@@ -431,24 +431,9 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
     return true
   }
 
-  function validateWalletAddress(): boolean {
-    const trimmed = walletAddress.trim()
-    if (!trimmed) {
-      setWalletAddressError('Wallet address is required')
-      return false
-    }
-    if (!/^0x[0-9a-fA-F]{40}$/.test(trimmed)) {
-      setWalletAddressError('Enter a valid Ethereum address (0x + 40 hex characters)')
-      return false
-    }
-    setWalletAddressError(null)
-    return true
-  }
-
   async function handleContinue() {
     if (!validateAmount()) return
     if (!validateEmail()) return
-    if (!validateWalletAddress()) return
     if (!quote) return
 
     setLoading(true)
@@ -468,10 +453,12 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
       currency,
       quoteId: quote.quoteId,
       quote,
-      sourceToken: selectedOption?.token ?? 'usdc',
-      sourceNetwork: selectedOption?.network ?? 'base',
+      sourceToken,
+      // Only set sourceNetwork from wallet if connected; otherwise leave undefined
+      // so the API can assign a deposit address on any supported network
+      ...(walletNetwork ? { sourceNetwork: walletNetwork } : {}),
       userEmail: email.trim(),
-      walletAddress: walletAddress.trim(),
+      ...(walletAddress ? { walletAddress, connectedChainId: walletChainId } : {}),
     })
   }
 
@@ -522,6 +509,53 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
         </p>
       )}
 
+      {/* Wallet — optional. Soft nudge when not connected; confirmation when connected. */}
+      {!walletAddress ? (
+        <div className="flex items-start gap-3 rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3">
+          <svg className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-xs text-gray-500">
+            <span className="font-medium text-gray-700">Optional:</span> Connect your wallet to send crypto directly. Without a wallet, you&apos;ll receive a deposit address in the next step.
+          </p>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5">
+          <svg className="h-4 w-4 shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          <p className="text-xs text-green-700">
+            Wallet connected — you&apos;ll send {sourceToken.toUpperCase()} directly from your wallet in the next step.
+          </p>
+        </div>
+      )}
+
+      {/* Source token selector — only shown when the connected network supports EURC */}
+      {walletAddress && walletNetwork && (NETWORK_TO_SOURCE_TOKENS[walletNetwork] ?? ['usdc']).length > 1 && (
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-gray-500">Source token</p>
+          <div className="flex gap-2">
+            {(NETWORK_TO_SOURCE_TOKENS[walletNetwork] ?? ['usdc']).map((token) => (
+              <button
+                key={token}
+                type="button"
+                onClick={() => setSourceToken(token)}
+                className={[
+                  'flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500',
+                  sourceToken === token
+                    ? 'border-orange-400 bg-orange-50 text-orange-700'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50',
+                ].join(' ')}
+                aria-pressed={sourceToken === token}
+              >
+                <span className="text-base">{token === 'usdc' ? '🔵' : '⭐'}</span>
+                {token.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Email */}
       <Input
         label="Your Email"
@@ -535,50 +569,6 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
         error={emailError ?? undefined}
         required
       />
-
-      {/* Wallet address */}
-      <Input
-        label="Your Wallet Address"
-        type="text"
-        placeholder="0x..."
-        value={walletAddress}
-        onChange={(e) => {
-          setWalletAddress(e.target.value)
-          setWalletAddressError(null)
-        }}
-        error={walletAddressError ?? undefined}
-        required
-      />
-
-      {/* Token / network picker */}
-      {depositOptions.length > 0 && (
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">
-            You will send
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {depositOptions.map((opt) => {
-              const key = `${opt.token}:${opt.network}`
-              const selKey = selectedOption ? `${selectedOption.token}:${selectedOption.network}` : ''
-              const isSelected = key === selKey
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setSelectedOption(opt)}
-                  className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 ${
-                    isSelected
-                      ? 'border-orange-500 bg-orange-50 text-orange-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Quote breakdown */}
       {loading && (
@@ -599,7 +589,7 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
           <div className="flex items-center justify-between px-4 py-2.5 text-sm">
             <span className="text-gray-500">You send</span>
             <span className="font-semibold text-gray-900">
-              ${floorTwo(usd)} {selectedOption ? selectedOption.tokenLabel : 'USDC'}
+              ${floorTwo(usd)} {sourceToken.toUpperCase()}
             </span>
           </div>
 

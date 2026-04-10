@@ -4,8 +4,17 @@ import { AmountStep } from './steps/AmountStep'
 import { RecipientStep } from './steps/RecipientStep'
 import { ConfirmStep } from './steps/ConfirmStep'
 import { SendStep } from './steps/SendStep'
+import { WalletConnect } from './ui/WalletConnect'
 import { deleteRecipient, cancelTransfer } from '../api/client'
 import type { Step, OrderState, WidgetProps } from '../types'
+
+const CHAIN_ID_MAP: Record<string, number> = {
+  ethereum:  1,
+  base:      8453,
+  polygon:   137,
+  arbitrum:  42161,
+  avalanche: 43114,
+}
 
 const SESSION_KEY = 'mw_widget_state'
 const TRANSFER_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
@@ -79,6 +88,12 @@ export function OfframpWidget({ onSuccess }: WidgetProps) {
   const [step, setStep] = useState<Step>(initialStep)
   const [orderState, setOrderState] = useState<Partial<OrderState>>(initialState)
   const [sessionExpired, setSessionExpired] = useState(false)
+
+  // Wallet state — lifted here so the connect button lives in the persistent header
+  const [walletAddress, setWalletAddress] = useState(initialState.walletAddress ?? '')
+  const [walletNetwork, setWalletNetwork] = useState(initialState.sourceNetwork ?? '')
+  const [walletChainId, setWalletChainId] = useState(initialState.connectedChainId)
+
   const [transferCreatedAt, setTransferCreatedAt] = useState<number | undefined>(
     // Preserve the original timestamp if restoring a non-expired send session
     !transferExpired && savedTransferId ? saved?.transferCreatedAt : undefined,
@@ -213,9 +228,24 @@ export function OfframpWidget({ onSuccess }: WidgetProps) {
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl ring-1 ring-gray-200">
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <img src="/mw.png" alt="Madhouse Wallet" className="h-8 w-8 rounded-lg object-contain" />
-            <span className="text-sm font-semibold text-gray-500">Madhouse Wallet</span>
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <div className="flex items-center gap-2">
+              <img src="/mw.png" alt="Madhouse Wallet" className="h-8 w-8 rounded-lg object-contain" />
+              <span className="text-sm font-semibold text-gray-500">Madhouse Wallet</span>
+            </div>
+            <WalletConnect
+              compact
+              onConnected={(address, network) => {
+                setWalletAddress(address)
+                setWalletNetwork(network)
+                setWalletChainId(CHAIN_ID_MAP[network])
+              }}
+              onDisconnected={() => {
+                setWalletAddress('')
+                setWalletNetwork('')
+                setWalletChainId(undefined)
+              }}
+            />
           </div>
           <StepIndicator current={step} />
         </div>
@@ -232,6 +262,9 @@ export function OfframpWidget({ onSuccess }: WidgetProps) {
           {step === 'amount' && (
             <AmountStep
               initialState={orderState}
+              walletAddress={walletAddress}
+              walletNetwork={walletNetwork}
+              walletChainId={walletChainId}
               onNext={handleAmountNext}
               onSessionExpired={() => handleSessionExpired(orderState)}
             />

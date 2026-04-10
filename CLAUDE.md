@@ -183,3 +183,108 @@ Build must exit 0 before any task is considered complete.
 - `/api/auth/widget-token` issues tokens to any same-origin request. If deployed on a public domain this is acceptable — attackers can obtain a token but can only use it to call the four allowlisted proxy paths.
 - CORS on the proxy is `*` — intentional for embeddable use. Restrict if deploying in a controlled environment.
 - The proxy path allowlist is the hard gate against SSRF — only the four approved upstream paths can be reached.
+
+---
+
+## CRITICAL: Wallet connection architecture
+
+### EVM + Solana isolation
+
+**Never use `@solana/wallet-adapter-react`'s `useWallet()` hook for connection.** The adapter lifecycle (readyState, WalletNotReadyError, WalletNotSelectedError) is unreliable for direct extension connections. Use native provider calls instead:
+
+```typescript
+// Phantom: modern extension injects at window.phantom.solana
+const provider = (window.phantom?.solana ?? window.solana) as SolanaProvider
+const response = await provider.connect()
+const address = response.publicKey.toBase58()
+```
+
+**The `@solana/wallet-adapter-*` packages are NOT imported in `WalletProvider.tsx`.** They were removed because they caused EVM address bleed-through, WalletNotReadyError, and state desynchronization. Do not re-add them.
+
+### wagmi auto-reconnect guard
+
+wagmi persists and auto-reconnects the last EVM wallet on page load. This would override a Solana connection. The guard in `WalletConnect.tsx`:
+
+```typescript
+useEffect(() => {
+  if (walletType !== 'solana' && evmConnected && evmAddress) {
+    // Only propagate EVM auto-reconnect if no Solana session is active
+  }
+}, [evmConnected, evmAddress, chainId, walletType])
+```
+
+**Do not remove this guard.** Without it, loading the page after a Solana connection will re-trigger the EVM connection and show the wrong address.
+
+### Race condition prevention — `currentAttemptRef`
+
+`connectingId` state is set at the start of a connection attempt and cleared in the `finally` block. If a user cancels attempt A and immediately clicks wallet B, attempt A's `finally` could fire after B starts and clear B's loading state, leaving the UI stuck forever. Prevention:
+
+```typescript
+const currentAttemptRef = useRef<string | null>(null)
+
+// At start of handler:
+currentAttemptRef.current = connectorId
+
+// In finally block — only clear if this is still the active attempt:
+if (currentAttemptRef.current === connectorId) {
+  setConnectingId(null)
+  currentAttemptRef.current = null
+}
+```
+
+**Do not simplify this to a plain `finally { setConnectingId(null) }`.** That pattern caused a stuck loading state when wallets were switched mid-attempt.
+
+### Modal button disabled logic
+
+When a connection is in progress, OTHER wallet buttons are disabled but the CURRENT connecting wallet keeps its spinner:
+
+```typescript
+disabled={busy && connectingId !== 'injected'}  // injected button
+disabled={busy && connectingId !== 'coinbaseWalletSDK'}  // coinbase button
+```
+
+**Do not change this to `disabled={busy}`.** That prevents users from seeing which wallet is connecting, and prevents switching wallets after a cancelled attempt if `connectingId` is never cleared.
+
+### Solana address validation
+
+After receiving a Solana public key, validate that it is a real Solana address (not an EVM address that leaked through):
+
+```typescript
+if (!address || address.startsWith('0x') || address.length < 32) {
+  throw new Error(`Unexpected address format: ${address}`)
+}
+```
+
+### EVM → Solana and Solana → EVM switching
+
+When switching between ecosystems, always disconnect the outgoing connection first:
+
+```typescript
+// In handleSolanaConnect:
+if (walletType === 'evm' || evmConnected) {
+  await disconnectAsync().catch(() => {})
+  setWalletType(null)
+}
+```
+
+```typescript
+// In handleEvmConnect:
+if (walletType === 'solana') {
+  setSolanaAddress(null)
+  setWalletType(null)
+}
+```
+
+**Without this, `useAccount()` from wagmi will still report the old EVM address even after a Solana connection succeeds.**
+
+### Single source of truth for connected state
+
+The derived `isConnected` check combines both states with AND conditions — do not loosen this:
+
+```typescript
+const isConnected =
+  (walletType === 'evm' && evmConnected && !!evmAddress) ||
+  (walletType === 'solana' && !!solanaAddress)
+```
+
+All three conditions are necessary for EVM (`walletType`, `evmConnected`, AND `evmAddress`) because wagmi can be "connected" in its internal state without a valid address during transitions.

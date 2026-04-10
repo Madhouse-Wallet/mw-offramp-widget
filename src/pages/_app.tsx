@@ -1,6 +1,7 @@
 import type { AppProps } from 'next/app'
 import Head from 'next/head'
 import '@/styles/globals.css'
+import { WalletProvider } from '@/components/WalletProvider'
 
 const SITE_URL = 'https://sellcoins.now/'
 const SITE_NAME = 'Madhouse Wallet — Sell Crypto'
@@ -97,7 +98,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           />
         )}
       </Head>
-      <Component {...pageProps} />
+      <WalletProvider>
+        <Component {...pageProps} />
+      </WalletProvider>
     </>
   )
 }

@@ -38,6 +38,10 @@ function CopyIcon({ copied }: { copied: boolean }) {
   )
 }
 
+function shortenAddress(addr: string) {
+  return addr.length > 13 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr
+}
+
 export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepProps) {
   const [copiedAddress, setCopiedAddress] = useState(false)
   const [copiedAmount, setCopiedAmount] = useState(false)
@@ -61,17 +65,23 @@ export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepP
     transferStatusLabel,
     sourceToken = 'usdc',
     sourceNetwork = 'base',
+    walletAddress,
   } = orderState
 
   const networkLabel =
-    sourceNetwork === 'arbitrum' ? 'Arbitrum' :
-    sourceNetwork === 'base' ? 'Base' :
-    sourceNetwork === 'ethereum' ? 'Ethereum' :
-    sourceNetwork === 'optimism' ? 'Optimism' :
-    sourceNetwork === 'polygon' ? 'Polygon' :
-    sourceNetwork === 'solana' ? 'Solana' :
+    sourceNetwork === 'arbitrum'  ? 'Arbitrum'  :
+    sourceNetwork === 'avalanche' ? 'Avalanche' :
+    sourceNetwork === 'base'      ? 'Base'      :
+    sourceNetwork === 'ethereum'  ? 'Ethereum'  :
+    sourceNetwork === 'optimism'  ? 'Optimism'  :
+    sourceNetwork === 'polygon'   ? 'Polygon'   :
+    sourceNetwork === 'solana'    ? 'Solana'    :
     sourceNetwork
+
   const tokenLabel = sourceToken.toUpperCase()
+
+  // Whether user connected a wallet — drives the UI branch in the send step
+  const walletConnected = !!walletAddress
 
   function copyToClipboard(text: string, setter: (v: boolean) => void) {
     navigator.clipboard.writeText(text).then(() => {
@@ -80,11 +90,10 @@ export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepP
     })
   }
 
-  // ── Success screen (shown after user clicks "I've sent the funds") ────────────
+  // ── Success screen ────────────────────────────────────────────────────────────
   if (done && transferId) {
     return (
       <div className="space-y-5">
-        {/* Success header */}
         <div className="text-center">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
             <svg className="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -97,11 +106,10 @@ export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepP
           </p>
         </div>
 
-        {/* Save transfer ID callout */}
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
           <p className="mb-1 text-sm font-semibold text-blue-800">Save your Transfer ID</p>
           <p className="mb-3 text-xs text-blue-700">
-            Use this ID to monitor your transaction status. You can check it at any time on the main screen.
+            Use this ID to monitor your transaction status at any time.
           </p>
           <div className="flex items-center justify-between gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2">
             <p className="flex-1 truncate font-mono text-xs text-gray-800">{transferId}</p>
@@ -116,7 +124,6 @@ export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepP
           </div>
         </div>
 
-        {/* Info */}
         <div className="flex gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
           <svg className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -127,40 +134,28 @@ export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepP
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          fullWidth
-          onClick={() => onSuccess && onSuccess(transferId)}
-        >
+        <Button variant="primary" fullWidth onClick={() => onSuccess && onSuccess(transferId)}>
           Start New Transfer
         </Button>
       </div>
     )
   }
 
-  // ── Deposit instructions screen ───────────────────────────────────────────────
+  // ── Deposit instructions ──────────────────────────────────────────────────────
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="text-center">
         <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-orange-100">
-          <svg
-            className="h-7 w-7 text-orange-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-            />
+          <svg className="h-7 w-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
           </svg>
         </div>
         <h2 className="text-lg font-semibold text-gray-900">Send Your {tokenLabel}</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Transfer the exact amount below to complete your payout.
+          {walletConnected
+            ? `Send the exact amount from your connected wallet.`
+            : `Transfer the exact amount to the address below to complete your payout.`}
         </p>
       </div>
 
@@ -189,56 +184,93 @@ export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepP
         )}
       </div>
 
-      {/* Deposit address */}
-      {depositAddress ? (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-            Deposit address ({networkLabel} network)
-          </p>
-          {/* QR code */}
-          <div className="flex justify-center rounded-xl border border-gray-200 bg-white p-5">
-            <QRCode
-              value={depositAddress}
-              size={180}
-              bgColor="#ffffff"
-              fgColor="#111827"
-              level="M"
-            />
+      {/* ── Wallet connected branch ────────────────────────────────────────────── */}
+      {walletConnected ? (
+        <div className="space-y-3">
+          {/* Connected wallet callout */}
+          <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <svg className="h-4 w-4 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <p className="text-sm font-semibold text-green-800">Wallet Connected</p>
+            </div>
+            <p className="text-xs text-green-700 mb-2">
+              Send <strong>{tokenLabel}</strong> on <strong>{networkLabel}</strong> from:
+            </p>
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-green-200 bg-white px-3 py-2">
+              <span className="font-mono text-xs text-gray-800">{shortenAddress(walletAddress)}</span>
+              <button
+                type="button"
+                onClick={() => copyToClipboard(walletAddress, setCopiedAddress)}
+                className="group flex shrink-0 items-center gap-1 rounded px-2 py-1 text-xs text-green-600 transition-colors hover:bg-green-50 hover:text-green-800"
+              >
+                <CopyIcon copied={copiedAddress} />
+                <span>{copiedAddress ? 'Copied!' : 'Copy address'}</span>
+              </button>
+            </div>
           </div>
-          {/* Address + copy */}
-          <div className="flex items-center gap-2 rounded-xl border border-orange-300 bg-orange-50 px-4 py-3">
-            <span className="flex-1 break-all font-mono text-xs text-gray-900">{depositAddress}</span>
-            <button
-              type="button"
-              onClick={() => copyToClipboard(depositAddress, setCopiedAddress)}
-              className="group flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-orange-600 transition-colors hover:bg-orange-100 hover:text-orange-800"
-            >
-              <CopyIcon copied={copiedAddress} />
-              <span>{copiedAddress ? 'Copied!' : 'Copy'}</span>
-            </button>
-          </div>
+
+          {/* Deposit address — still shown so user can manually send or verify */}
+          {depositAddress && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Send to this deposit address ({networkLabel})
+              </p>
+              <div className="flex justify-center rounded-xl border border-gray-200 bg-white p-5">
+                <QRCode value={depositAddress} size={160} bgColor="#ffffff" fgColor="#111827" level="M" />
+              </div>
+              <div className="flex items-center gap-2 rounded-xl border border-orange-300 bg-orange-50 px-4 py-3">
+                <span className="flex-1 break-all font-mono text-xs text-gray-900">{depositAddress}</span>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(depositAddress, setCopiedAddress)}
+                  className="group flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-orange-600 transition-colors hover:bg-orange-100 hover:text-orange-800"
+                >
+                  <CopyIcon copied={copiedAddress} />
+                  <span>{copiedAddress ? 'Copied!' : 'Copy'}</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <p className="text-sm text-gray-500">
-            Deposit address will be shown here. If you don&apos;t see it, please contact support with
-            your transfer ID.
-          </p>
-        </div>
+        /* ── No wallet — show deposit address + QR ───────────────────────────── */
+        <>
+          {depositAddress ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Deposit address ({networkLabel} network)
+              </p>
+              <div className="flex justify-center rounded-xl border border-gray-200 bg-white p-5">
+                <QRCode value={depositAddress} size={180} bgColor="#ffffff" fgColor="#111827" level="M" />
+              </div>
+              <div className="flex items-center gap-2 rounded-xl border border-orange-300 bg-orange-50 px-4 py-3">
+                <span className="flex-1 break-all font-mono text-xs text-gray-900">{depositAddress}</span>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(depositAddress, setCopiedAddress)}
+                  className="group flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-orange-600 transition-colors hover:bg-orange-100 hover:text-orange-800"
+                >
+                  <CopyIcon copied={copiedAddress} />
+                  <span>{copiedAddress ? 'Copied!' : 'Copy'}</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <p className="text-sm text-gray-500">
+                Deposit address will appear here. If missing, contact support with your Transfer ID.
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       {/* Warning */}
       <div className="flex gap-3 rounded-xl border border-yellow-300 bg-yellow-50 p-3">
-        <svg
-          className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-        >
-          <path
-            fillRule="evenodd"
-            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-            clipRule="evenodd"
-          />
+        <svg className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
         </svg>
         <p className="text-xs text-yellow-800">
           Send <strong>only {tokenLabel} on {networkLabel}</strong> to this address. Sending other
@@ -246,7 +278,7 @@ export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepP
         </p>
       </div>
 
-      {/* Transfer ID + reference */}
+      {/* Transfer ID */}
       {transferId && (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
           <div>
@@ -279,11 +311,7 @@ export function SendStep({ orderState, onSuccess, onBack, onTimeout }: SendStepP
             Back
           </Button>
         )}
-        <Button
-          variant="primary"
-          onClick={() => setDone(true)}
-          className="flex-1"
-        >
+        <Button variant="primary" onClick={() => setDone(true)} className="flex-1">
           I&apos;ve Sent the Funds
         </Button>
       </div>

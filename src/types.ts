@@ -37,10 +37,11 @@ export interface OrderState {
   currency?: string
   quoteId?: string
   quote?: QuoteResponse
-  sourceToken?: string   // e.g. "usdc", "usdt", "eth"
-  sourceNetwork?: string // e.g. "base", "ethereum", "polygon"
+  sourceToken?: string   // always "usdc"
+  sourceNetwork?: string // e.g. "base", "ethereum", "polygon", "solana"
   userEmail?: string
-  walletAddress?: string
+  walletAddress?: string // populated from connected wallet — read-only to user
+  connectedChainId?: number // EVM chain ID (undefined for Solana)
 
   // Set by RecipientStep
   recipientId?: number
@@ -160,7 +161,7 @@ export interface CreateTransferPayload {
   customer_email: string
   source_token: string
   source_network: string
-  wallet_address: string
+  wallet_address?: string
 }
 
 // POST /api/payouts/transfer returns the same TransferResponse wrapper as GET

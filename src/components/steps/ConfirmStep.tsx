@@ -56,7 +56,15 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
     sourceNetwork,
     userEmail,
     walletAddress,
+    connectedChainId: _connectedChainId,
   } = orderState
+
+  const networkLabel = sourceNetwork
+    ? sourceNetwork.charAt(0).toUpperCase() + sourceNetwork.slice(1)
+    : null
+
+  const shortenAddress = (addr: string) =>
+    addr.length > 13 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr
 
   const delivery = formatDelivery(quote?.quote.estimatedDelivery)
 
@@ -80,7 +88,7 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
         customer_email: userEmail ?? '',
         source_token: sourceToken ?? 'usdc',
         source_network: sourceNetwork ?? 'base',
-        wallet_address: walletAddress,
+        ...(walletAddress ? { wallet_address: walletAddress } : {}),
       })
       const t = response.transfer
       onNext({
@@ -121,7 +129,7 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
       </div>
 
       <div className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-gray-50">
-        <SummaryRow label="You send" value={`$${floorTwo(amount)} USD`} />
+        <SummaryRow label="You send" value={`$${floorTwo(amount)} ${(sourceToken ?? 'usdc').toUpperCase()}`} />
 
         {quote && (
           <>
@@ -142,6 +150,22 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
               value={`1 USD ≈ ${floorTwo(quote.usdToTargetRate)} ${quote.targetCurrency}`}
             />
           </>
+        )}
+
+        {walletAddress && (
+          <SummaryRow
+            label="From wallet"
+            value={
+              <span>
+                <span className="block font-mono text-xs">{shortenAddress(walletAddress)}</span>
+                {networkLabel && (
+                  <span className="text-xs text-gray-400">
+                    {(orderState.sourceToken ?? 'usdc').toUpperCase()} on {networkLabel}
+                  </span>
+                )}
+              </span>
+            }
+          />
         )}
 
         {recipientName && (
