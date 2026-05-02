@@ -27,6 +27,7 @@
 |---|---|
 | **API Documentation** | https://business.madhousewallet.com/developers/api-docs |
 | **Integration Models** | Direct API, Widget UI |
+| **Widget UI Auth** | Email OTP verification required before any transaction (6-digit code, 10-minute expiry, 2-hour session) |
 | **Fully Programmatic (no front-end required)** | Yes |
 | **Versioned with Changelog** | Yes — https://business.madhousewallet.com/developers/changelog |
 | **Sandbox / Staging Environment** | Yes |

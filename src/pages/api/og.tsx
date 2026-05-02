@@ -1,10 +1,11 @@
-import { ImageResponse } from '@vercel/og'
-import type { NextRequest } from 'next/server'
+import { ImageResponse } from 'next/og'
+import type { NextApiRequest, NextApiResponse } from 'next'
 
-export const config = { runtime: 'edge' }
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+const siteDomain = siteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
 
-export default function handler(_req: NextRequest) {
-  return new ImageResponse(
+export default async function handler(_req: NextApiRequest, res: NextApiResponse) {
+  const imageResponse = new ImageResponse(
     (
       <div
         style={{
@@ -148,7 +149,7 @@ export default function handler(_req: NextRequest) {
             display: 'flex',
           }}
         >
-          sellcoins.now
+          {siteDomain}
         </div>
       </div>
     ),
@@ -157,4 +158,8 @@ export default function handler(_req: NextRequest) {
       height: 630,
     },
   )
+  const buffer = Buffer.from(await imageResponse.arrayBuffer())
+  res.setHeader('Content-Type', 'image/png')
+  res.setHeader('Cache-Control', 'public, max-age=86400, immutable')
+  res.end(buffer)
 }

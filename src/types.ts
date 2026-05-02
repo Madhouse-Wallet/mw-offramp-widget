@@ -1,17 +1,34 @@
-// ─── Widget config ────────────────────────────────────────────────────────────
-
-export interface WidgetConfig {
-  // baseUrl removed — widget always calls /api/proxy/... on same origin
+/** Minimal EIP-1193 provider interface — covers WalletConnect, Coinbase Wallet, and Base Smart Wallet */
+export interface EthProvider {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
 }
 
 export interface WidgetProps {
   onSuccess?: (transferId: string) => void
   onError?: (error: Error) => void
+  /** EVM wallet address pre-connected on the host page (locks the wallet field) */
+  connectedEvmAddress?: string
+  /** Solana wallet address pre-connected on the host page (locks the wallet field) */
+  connectedSolanaAddress?: string
+  /** Active EIP-1193 provider (WalletConnect or Coinbase) for sending txs */
+  evmProvider?: EthProvider
 }
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
 
-export type Step = 'amount' | 'recipient' | 'confirm' | 'send'
+export type Step = 'verify-email' | 'amount' | 'recipient' | 'confirm' | 'send'
+
+// ─── OTP auth response types ─────────────────────────────────────────────────
+
+export interface OtpSendResponse {
+  otpToken: string
+  expiresIn: number
+}
+
+export interface OtpVerifyResponse {
+  sessionToken: string
+  expiresIn: number
+}
 
 // ─── Shared order state (grows as steps complete) ─────────────────────────────
 
@@ -75,13 +92,6 @@ export interface QuoteResponse {
     transferFee: number | null
     estimatedDelivery: string | null
   }
-}
-
-export interface FeeResponse {
-  mwFee: number
-  mwFeePercentage: number
-  isDiscounted: boolean
-  capApplied: boolean
 }
 
 export interface AmountLimitsResponse {

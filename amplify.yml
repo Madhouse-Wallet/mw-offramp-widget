@@ -13,7 +13,13 @@ frontend:
         - env | grep -e RECAPTCHA_SECRET_KEY >> .env.production || true
         - env | grep -e NEXT_PUBLIC_GA_MEASUREMENT_ID >> .env.production || true
         - env | grep -e NEXT_PUBLIC_RECAPTCHA_SITE_KEY >> .env.production || true
-        - env | grep -e NEXT_PUBLIC_SUPPORT_WHATSAPP_URL >> .env.production || true
+        - env | grep -e NEXT_PUBLIC_SUPPORT_URL >> .env.production || true
+        - env | grep -e NEXT_PUBLIC_SITE_URL >> .env.production || true
+        - env | grep -e NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID >> .env.production || true
+        - env | grep -e NEXT_PUBLIC_GTM_ID >> .env.production || true
+        - env | grep -e WIDGET_API_BASE_URL >> .env.production || true
+        - env | grep -e AWS_REGION >> .env.production || true
+        - env | grep -e SES_FROM_ADDRESS >> .env.production || true
         - npm run build
   artifacts:
     baseDirectory: .next

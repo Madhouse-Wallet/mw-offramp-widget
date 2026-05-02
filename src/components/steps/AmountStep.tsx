@@ -12,7 +12,7 @@ function StatusBadge({ status, label }: { status: string; label: string }) {
   const color =
     status === 'completed' ? 'bg-green-100 text-green-700 ring-green-200' :
     status === 'failed'    ? 'bg-red-100 text-red-700 ring-red-200' :
-                             'bg-orange-100 text-orange-700 ring-orange-200'
+                             'bg-orange-100 text-[#ef5200] ring-orange-200'
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${color}`}>
       {label}
@@ -23,8 +23,8 @@ function StatusBadge({ status, label }: { status: string; label: string }) {
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 py-1.5">
-      <span className="shrink-0 text-xs text-gray-500">{label}</span>
-      <span className="text-right text-xs font-medium text-gray-900 break-all">{value}</span>
+      <span className="shrink-0 text-xs text-gray-500 dark:text-gray-400">{label}</span>
+      <span className="text-right text-xs font-medium text-gray-900 dark:text-gray-100 break-all">{value}</span>
     </div>
   )
 }
@@ -38,16 +38,16 @@ function ExpandSection({
 }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="rounded-lg border border-gray-200">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between px-3 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-1"
+        className="flex w-full items-center justify-between px-3 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#fa4536] focus-visible:ring-offset-1"
       >
-        <span className="text-xs font-semibold text-gray-700">{title}</span>
+        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{title}</span>
         <svg
-          className={`h-3.5 w-3.5 shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`h-3.5 w-3.5 shrink-0 text-gray-400 dark:text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}
           viewBox="0 0 16 16"
           fill="none"
           stroke="currentColor"
@@ -58,7 +58,7 @@ function ExpandSection({
         </svg>
       </button>
       {open && (
-        <div className="divide-y divide-gray-100 border-t border-gray-200 px-3">
+        <div className="divide-y divide-gray-100 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700 px-3">
           {children}
         </div>
       )}
@@ -98,7 +98,7 @@ function QuoteSection({ quote }: { quote: TransferQuoteSnapshot }) {
       )}
       <DetailRow label="Net converted" value={`$${floorTwo(quote.netUsdAmount)} USD`} />
       {quote.transferFee != null && (
-        <DetailRow label="FX fee" value={`−$${floorTwo(quote.transferFee)}`} />
+        <DetailRow label="Transfer fee" value={`−$${floorTwo(quote.transferFee)}`} />
       )}
       <DetailRow
         label="Exchange rate"
@@ -125,18 +125,18 @@ function QuoteSection({ quote }: { quote: TransferQuoteSnapshot }) {
 function TransferStatusCard({ transfer }: { transfer: TransferRecord }) {
   return (
     <div
-      className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-white p-3"
+      className="mt-3 space-y-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3"
       role="region"
       aria-label="Transfer status"
     >
       {/* Header row */}
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-gray-700">Transfer status</span>
+        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Transfer status</span>
         <StatusBadge status={transfer.status} label={transfer.status_label} />
       </div>
 
       {/* Core fields */}
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-gray-100 dark:divide-gray-700">
         <DetailRow label="Transfer ID" value={<span className="font-mono">{transfer.id}</span>} />
         <DetailRow label="Amount" value={`$${floorTwo(transfer.amount)} USD`} />
         {transfer.currency && (
@@ -270,9 +270,11 @@ interface AmountStepProps {
   initialState: Partial<OrderState>
   onNext: (data: Partial<OrderState>) => void
   onSessionExpired: () => void
+  connectedEvmAddress?: string
+  connectedSolanaAddress?: string
 }
 
-export function AmountStep({ initialState, onNext, onSessionExpired }: AmountStepProps) {
+export function AmountStep({ initialState, onNext, onSessionExpired, connectedEvmAddress, connectedSolanaAddress }: AmountStepProps) {
   const [amountStr, setAmountStr] = useState(
     initialState.amount != null ? String(initialState.amount) : '',
   )
@@ -280,8 +282,6 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
   const [quote, setQuote] = useState<QuoteResponse | null>(
     initialState.quote ?? null,
   )
-  const [email, setEmail] = useState(initialState.userEmail ?? '')
-  const [emailError, setEmailError] = useState<string | null>(null)
   const [walletAddress, setWalletAddress] = useState(initialState.walletAddress ?? '')
   const [walletAddressError, setWalletAddressError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -304,6 +304,17 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
   const [lookupLoading, setLookupLoading] = useState(false)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Auto-populate wallet address from connected wallet when the selected network changes
+  useEffect(() => {
+    if (!selectedOption) return
+    const connected =
+      selectedOption.network === 'solana' ? connectedSolanaAddress : connectedEvmAddress
+    if (connected) {
+      setWalletAddress(connected)
+      setWalletAddressError(null)
+    }
+  }, [selectedOption, connectedEvmAddress, connectedSolanaAddress])
 
   // Fetch deposit options and amount limits once on mount
   useEffect(() => {
@@ -417,19 +428,6 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
     return true
   }
 
-  function validateEmail(): boolean {
-    const trimmed = email.trim()
-    if (!trimmed) {
-      setEmailError('Email is required')
-      return false
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setEmailError('Enter a valid email address')
-      return false
-    }
-    setEmailError(null)
-    return true
-  }
 
   function validateWalletAddress(): boolean {
     const trimmed = walletAddress.trim()
@@ -437,15 +435,23 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
       setWalletAddressError('Wallet address is required')
       return false
     }
-    const isSolana = selectedOption?.network === 'solana'
-    if (isSolana) {
+    const network = selectedOption?.network ?? 'base'
+    if (network === 'solana') {
+      // Solana: base58 public key, 32–44 characters
       if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(trimmed)) {
         setWalletAddressError('Enter a valid Solana address (base58, 32–44 characters)')
         return false
       }
+    } else if (network === 'tron') {
+      // Tron: base58 address, starts with T, 34 characters
+      if (!/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(trimmed)) {
+        setWalletAddressError('Enter a valid Tron address (starts with T, 34 characters)')
+        return false
+      }
     } else {
+      // EVM networks: base, arbitrum, ethereum, avalanche, polygon
       if (!/^0x[0-9a-fA-F]{40}$/.test(trimmed)) {
-        setWalletAddressError('Enter a valid Ethereum address (0x + 40 hex characters)')
+        setWalletAddressError('Enter a valid wallet address (0x + 40 hex characters)')
         return false
       }
     }
@@ -455,7 +461,6 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
   async function handleContinue() {
     if (!validateAmount()) return
-    if (!validateEmail()) return
     if (!validateWalletAddress()) return
     if (!quote) return
 
@@ -478,7 +483,7 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
       quote,
       sourceToken: selectedOption?.token ?? 'usdc',
       sourceNetwork: selectedOption?.network ?? 'base',
-      userEmail: email.trim(),
+      userEmail: initialState.userEmail,
       walletAddress: walletAddress.trim(),
     })
   }
@@ -490,18 +495,17 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
   const transferFeeUsd = quote?.quote.transferFee ?? null
   const estimatedDelivery = quote?.quote.estimatedDelivery ?? null
-  const staticTransferFeeUsd = !isNaN(usd) && usd > 0 ? usd * 0.006 : null
 
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">Send Money</h2>
-        <p className="mt-0.5 text-sm text-gray-500">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Send Money</h2>
+        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
           Enter the amount you want to send and choose the recipient currency.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
         <Input
           label="Amount (USD)"
           type="number"
@@ -531,38 +535,43 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
         </p>
       )}
 
-      {/* Email */}
-      <Input
-        label="Your Email"
-        type="email"
-        placeholder="you@example.com"
-        value={email}
-        onChange={(e) => {
-          setEmail(e.target.value)
-          setEmailError(null)
-        }}
-        error={emailError ?? undefined}
-        required
-      />
+      {/* Email removed — verified before this step; email lives in orderState.userEmail */}
 
-      {/* Wallet address */}
-      <Input
-        label="Your Wallet Address"
-        type="text"
-        placeholder="0x..."
-        value={walletAddress}
-        onChange={(e) => {
-          setWalletAddress(e.target.value)
-          setWalletAddressError(null)
-        }}
-        error={walletAddressError ?? undefined}
-        required
-      />
+      {/* Wallet address — locked when a wallet is connected on the host page */}
+      {(() => {
+        const network = selectedOption?.network ?? 'base'
+        const connected =
+          network === 'solana' ? connectedSolanaAddress : connectedEvmAddress
+        const isLocked = Boolean(connected)
+        return (
+          <div>
+            <Input
+              label="Your Wallet Address"
+              type="text"
+              placeholder={network === 'solana' ? 'Solana address...' : '0x...'}
+              value={walletAddress}
+              onChange={(e) => {
+                if (isLocked) return
+                setWalletAddress(e.target.value)
+                setWalletAddressError(null)
+              }}
+              error={walletAddressError ?? undefined}
+              required
+              readOnly={isLocked}
+            />
+            {isLocked && (
+              <p className="mt-1 text-xs text-green-600 font-medium">
+                ✓ Connected from your wallet
+              </p>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Token / network picker */}
       {depositOptions.length > 0 && (
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">
+          <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
             You will send
           </label>
           <div className="flex flex-wrap gap-2">
@@ -575,10 +584,10 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
                   key={key}
                   type="button"
                   onClick={() => setSelectedOption(opt)}
-                  className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                  className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#fa4536] ${
                     isSelected
-                      ? 'border-orange-500 bg-orange-50 text-orange-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-[#ef5200] bg-orange-50 dark:bg-orange-900/30 text-[#ef5200] dark:text-[#fd754d]'
+                      : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600'
                   }`}
                 >
                   {opt.label}
@@ -591,7 +600,7 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
       {/* Quote breakdown */}
       {loading && (
-        <div className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
+        <div className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 text-sm text-gray-500 dark:text-gray-400">
           <Spinner size={16} />
           <span>Fetching quote…</span>
         </div>
@@ -604,56 +613,47 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
       )}
 
       {!loading && !error && quote && (
-        <div className="space-y-0 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-gray-50">
+        <div className="space-y-0 divide-y divide-gray-100 dark:divide-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
           <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-            <span className="text-gray-500">You send</span>
-            <span className="font-semibold text-gray-900">
+            <span className="text-gray-500 dark:text-gray-400">You send</span>
+            <span className="font-semibold text-gray-900 dark:text-gray-100">
               ${floorTwo(usd)} {selectedOption ? selectedOption.tokenLabel : 'USDC'}
             </span>
           </div>
 
           {serviceFee > 0 && (
             <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-              <span className="text-gray-500">Service fee ({floorTwo(serviceFeePercent)}%)</span>
-              <span className="font-medium text-gray-900">−${floorTwo(serviceFee)}</span>
+              <span className="text-gray-500 dark:text-gray-400">Service fee ({floorTwo(serviceFeePercent)}%)</span>
+              <span className="font-medium text-gray-900 dark:text-gray-100">−${floorTwo(serviceFee)}</span>
             </div>
           )}
 
           {transferFeeUsd != null && (
             <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-              <span className="text-gray-500">FX fee</span>
-              <span className="font-medium text-gray-900">
+              <span className="text-gray-500 dark:text-gray-400">Transfer fee</span>
+              <span className="font-medium text-gray-900 dark:text-gray-100">
                 −${floorTwo(transferFeeUsd)}
               </span>
             </div>
           )}
 
-          {staticTransferFeeUsd != null && (
-            <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-              <span className="text-gray-500">Transfer fee (0.6%)</span>
-              <span className="font-medium text-gray-900">
-                −${floorTwo(staticTransferFeeUsd)}
-              </span>
-            </div>
-          )}
-
           <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-            <span className="text-gray-500">Exchange rate</span>
-            <span className="font-medium text-gray-900">
+            <span className="text-gray-500 dark:text-gray-400">Exchange rate</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">
               1 USD ≈ {floorTwo(quote.usdToTargetRate)} {quote.targetCurrency}
             </span>
           </div>
 
           <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-            <span className="font-medium text-gray-700">Recipient gets</span>
-            <span className="font-semibold text-orange-600">
+            <span className="font-medium text-gray-700 dark:text-gray-300">Recipient gets</span>
+            <span className="font-semibold text-[#ef5200]">
               {quote.quote.targetAmount != null ? floorTwo(quote.quote.targetAmount) : '—'} {quote.targetCurrency}
             </span>
           </div>
 
           {estimatedDelivery && (
             <div className="px-4 py-2.5">
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
                 Estimated delivery:{' '}
                 {new Date(estimatedDelivery).toLocaleDateString(undefined, {
                   weekday: 'short',
@@ -678,8 +678,8 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
 
 
       {/* Transfer status lookup */}
-      <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-4">
-        <p className="mb-2 text-sm font-medium text-gray-700">Check a previous transfer</p>
+      <div className="mt-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4">
+        <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Check a previous transfer</p>
         <div className="flex gap-2">
           <input
             type="text"
@@ -691,13 +691,13 @@ export function AmountStep({ initialState, onNext, onSessionExpired }: AmountSte
               setLookupError(null)
             }}
             onKeyDown={(e) => { if (e.key === 'Enter') void handleLookup() }}
-            className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-[#fa4536] focus:outline-none focus:ring-1 focus:ring-[#fa4536]"
           />
           <button
             type="button"
             onClick={() => void handleLookup()}
             disabled={!lookupId.trim() || lookupLoading}
-            className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50"
+            className="rounded-lg bg-[#fd754d] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#ef5200] disabled:opacity-50"
           >
             {lookupLoading ? '…' : 'Check'}
           </button>

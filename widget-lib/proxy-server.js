@@ -3,15 +3,15 @@
  * mw-offramp proxy server
  *
  * A minimal Express reverse proxy that sits between the widget and the
- * Madhouse Wallet business API. Run this on your backend — it holds your
+ * Your business API. Run this on your backend — it holds your
  * API credentials and never exposes them to the browser.
  *
  * Usage:
  *   node proxy-server.js <WIDGET_API_KEY> <WIDGET_USER_ID> [port]
  *
  * Arguments:
- *   WIDGET_API_KEY   Your Madhouse Wallet API key (mw_live_...)
- *   WIDGET_USER_ID   Your Madhouse Wallet user ID
+ *   WIDGET_API_KEY   Your business API key (mw_live_...)
+ *   WIDGET_USER_ID   Your business user ID
  *   port             Port to listen on (default: 3001)
  *
  * The widget must be configured to point at this server:
@@ -74,6 +74,7 @@ const ALLOWED_PATH_PREFIXES = [
   'payouts/recipients',
   'payouts/account-requirements',
   'payouts/deposit-options',
+  'payouts/amount-limits',
   'payouts/fee',
 ]
 

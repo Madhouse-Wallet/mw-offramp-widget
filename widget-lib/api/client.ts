@@ -17,7 +17,6 @@
 
 import type {
   QuoteResponse,
-  FeeResponse,
   AmountLimitsResponse,
   RequirementsResponse,
   RecipientResponse,
@@ -28,6 +27,8 @@ import type {
   TransferRecord,
   DepositOptionsResponse,
   DepositOption,
+  OtpSendResponse,
+  OtpVerifyResponse,
 } from '../types'
 
 // ─── Client config ────────────────────────────────────────────────────────────
@@ -148,10 +149,6 @@ export async function getDepositOptions(): Promise<DepositOption[]> {
   return resp.options ?? []
 }
 
-export async function getFee(): Promise<FeeResponse> {
-  return apiFetch<FeeResponse>('/payouts/fee')
-}
-
 export async function getAmountLimits(): Promise<AmountLimitsResponse> {
   return apiFetch<AmountLimitsResponse>('/payouts/amount-limits')
 }
@@ -239,4 +236,34 @@ export async function createTransfer(payload: CreateTransferPayload): Promise<Tr
     method: 'POST',
     body: JSON.stringify(payload),
   })
+}
+
+// ─── OTP auth functions ───────────────────────────────────────────────────────
+// In the lib build the consumer's backend handles auth — these are no-ops so
+// EmailVerifyScreen compiles without a Next.js backend. The consumer should
+// implement their own OTP flow and call setSessionToken() on success, or
+// configure their proxy to not require OTP gating.
+
+const OTP_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+export function setSessionToken(_token: string, _expiresIn: number): void {
+  // no-op — lib consumers manage their own auth
+}
+
+export async function sendOtp(_email: string, _captchaToken: string | null): Promise<OtpSendResponse> {
+  if (!OTP_EMAIL_RE.test(_email.trim())) {
+    throw new Error('Enter a valid email address')
+  }
+  // no-op stub — lib consumer provides their own OTP flow
+  throw new Error('sendOtp is not implemented in the embedded lib build. Implement via your own backend.')
+}
+
+export async function verifyOtp(
+  _otpToken: string,
+  _code: string,
+  _email: string,
+  _captchaToken: string | null,
+): Promise<OtpVerifyResponse> {
+  // no-op stub — lib consumer provides their own OTP flow
+  throw new Error('verifyOtp is not implemented in the embedded lib build. Implement via your own backend.')
 }

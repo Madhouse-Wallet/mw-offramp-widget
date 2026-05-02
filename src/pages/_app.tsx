@@ -2,13 +2,14 @@ import type { AppProps } from 'next/app'
 import Head from 'next/head'
 import '@/styles/globals.css'
 
-const SITE_URL = 'https://sellcoins.now/'
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID ?? ''
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL!
+const SITE_DOMAIN = new URL(SITE_URL).hostname
 const SITE_NAME = 'Madhouse Wallet — Sell Crypto'
 const TITLE = 'Sell Crypto Instantly | Madhouse Wallet Offramp'
 const DESCRIPTION =
-  'Convert USDC to 45+ local currencies and receive funds directly to your bank account. Fast, secure crypto offramp powered by Madhouse Wallet and Wise.'
+  'Convert USDC to 82 local currencies and receive funds directly to your bank account. Fast, secure crypto offramp powered by Madhouse Wallet.'
 const OG_IMAGE = `${SITE_URL}api/og`
-const GTM_ID = 'GTM-TSN966DB'
 const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -18,7 +19,7 @@ export default function App({ Component, pageProps }: AppProps) {
       <Head>
         {/* ── Core ───────────────────────────────────────────────────────── */}
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{TITLE}</title>
         <meta name="description" content={DESCRIPTION} />
         <meta
@@ -30,10 +31,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="canonical" href={SITE_URL} />
 
         {/* ── Favicon & icons ────────────────────────────────────────────── */}
-        <link rel="icon" type="image/png" href="/favicon.png" />
-        <link rel="apple-touch-icon" href="/favicon.png" />
-        <meta name="theme-color" content="#ea580c" />
-        <link rel="manifest" href="/site.webmanifest" />
+        <link rel="icon" type="image/png" href="/mw.png" />
 
         {/* ── Open Graph (Facebook, LinkedIn, WhatsApp, Slack…) ──────────── */}
         <meta property="og:type" content="website" />
@@ -49,13 +47,13 @@ export default function App({ Component, pageProps }: AppProps) {
 
         {/* ── Twitter / X Card ───────────────────────────────────────────── */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:domain" content="sellcoins.now" />
-        <meta name="twitter:site" content="@MadhouseWallet" />
-        <meta name="twitter:creator" content="@MadhouseWallet" />
+        <meta name="twitter:domain" content={SITE_DOMAIN} />
+        <meta name="twitter:site" content="@madhouse" />
+        <meta name="twitter:creator" content="@madhouse" />
         <meta name="twitter:title" content={TITLE} />
         <meta name="twitter:description" content={DESCRIPTION} />
         <meta name="twitter:image" content={OG_IMAGE} />
-        <meta name="twitter:image:alt" content="Madhouse Wallet crypto offramp" />
+        <meta name="twitter:image:alt" content="Madhouse Wallet crypto offramp — sell USDC to local currency" />
 
         {/* ── Google Tag Manager ─────────────────────────────────────────── */}
         <script

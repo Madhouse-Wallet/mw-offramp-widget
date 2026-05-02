@@ -42,8 +42,8 @@ const DIST = path.join(ROOT, 'dist-lib')
 // deps are skipped on incremental installs. We detect and fix this automatically.
 
 const BUILD_DEPS = [
-  { pkg: 'vite', version: '5' },
-  { pkg: '@vitejs/plugin-react', version: '4' },
+  { pkg: 'vite', version: '8' },
+  { pkg: '@vitejs/plugin-react', version: '6' },
   { pkg: 'vite-plugin-css-injected-by-js', version: null },
 ]
 
@@ -126,7 +126,7 @@ ensureDeps()
 //    tailwind config. Vite reads the POSTCSS_CONFIG env var too — we point it
 //    at our lib-specific postcss config.
 run(
-  'npx vite build --config vite.config.lib.ts',
+  'npx vite build --config vite.config.lib.mts',
   {
     env: {
       ...process.env,
@@ -163,7 +163,7 @@ const tsconfig = {
 const tsconfigPath = path.join(ROOT, 'tsconfig.lib.json')
 fs.writeFileSync(tsconfigPath, JSON.stringify(tsconfig, null, 2))
 
-run(`npx tsc --project ${tsconfigPath}`)
+run(`npx tsc --project "${tsconfigPath}"`)
 
 // Clean up temp tsconfig
 fs.unlinkSync(tsconfigPath)

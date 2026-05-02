@@ -4,8 +4,9 @@ import { AmountStep } from './steps/AmountStep'
 import { RecipientStep } from './steps/RecipientStep'
 import { ConfirmStep } from './steps/ConfirmStep'
 import { SendStep } from './steps/SendStep'
-import { deleteRecipient, cancelTransfer } from '../api/client'
-import type { Step, OrderState, WidgetProps } from '../types'
+import { EmailVerifyScreen } from './steps/EmailVerifyScreen'
+import { deleteRecipient, cancelTransfer, setSessionToken } from '../api/client'
+import type { Step, OrderState, WidgetProps, EthProvider } from '../types'
 
 const SESSION_KEY = 'mw_widget_state'
 const TRANSFER_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
@@ -23,6 +24,7 @@ function loadSession(): { step: Step; orderState: Partial<OrderState>; transferC
     const raw = sessionStorage.getItem(SESSION_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as { step: Step; orderState: Partial<OrderState>; transferCreatedAt?: number }
+    // verify-email is never persisted — always restart from email gate
     const validSteps: Step[] = ['amount', 'recipient', 'confirm', 'send']
     if (!validSteps.includes(parsed.step)) return null
     return parsed
@@ -39,7 +41,7 @@ function clearSession() {
   }
 }
 
-export function OfframpWidget({ onSuccess }: WidgetProps) {
+export function OfframpWidget({ onSuccess, onError, connectedEvmAddress, connectedSolanaAddress, evmProvider }: WidgetProps) {
   const saved = loadSession()
 
   // If the session was saved mid-send (transferId exists), determine whether the
@@ -59,20 +61,18 @@ export function OfframpWidget({ onSuccess }: WidgetProps) {
   const savedTransferIdToCancel = savedTransferId
 
   const initialStep: Step = (() => {
-    if (!savedTransferId) return saved?.step ?? 'amount'
-    if (transferExpired) return 'amount'
+    if (!savedTransferId) return 'verify-email'
+    if (transferExpired) return 'verify-email'
     return 'confirm'
   })()
 
   const initialState: Partial<OrderState> = (() => {
-    if (!savedTransferId) return saved?.orderState ?? {}
+    if (!savedTransferId) return {}
     if (transferExpired) return {}
     return {
       ...saved!.orderState,
       transferId: undefined,
       depositAddress: undefined,
-      depositAmount: undefined,
-      depositCurrency: undefined,
     }
   })()
 
@@ -126,12 +126,20 @@ export function OfframpWidget({ onSuccess }: WidgetProps) {
     clearSession()
     setTransferCreatedAt(undefined)
     setOrderState({})
-    setStep('amount')
+    setStep('verify-email')
     setSessionExpired(true)
-  }, [cleanupRecipient])
+    if (onError) onError(new Error('Session expired'))
+  }, [cleanupRecipient, onError])
 
   function mergeState(data: Partial<OrderState>) {
     setOrderState((prev) => ({ ...prev, ...data }))
+  }
+
+  function handleEmailVerified(email: string, sessionToken: string, expiresIn: number) {
+    setSessionToken(sessionToken, expiresIn)
+    setSessionExpired(false)
+    mergeState({ userEmail: email })
+    setStep('amount')
   }
 
   function handleAmountNext(data: Partial<OrderState>) {
@@ -146,7 +154,7 @@ export function OfframpWidget({ onSuccess }: WidgetProps) {
   }
 
   function handleConfirmNext(data: Partial<OrderState>) {
-    mergeState(data)
+    setOrderState((prev) => ({ ...prev, ...data, recipientDetails: undefined }))
     setTransferCreatedAt(Date.now())
     setStep('send')
   }
@@ -175,8 +183,6 @@ export function OfframpWidget({ onSuccess }: WidgetProps) {
       ...prev,
       transferId: undefined,
       depositAddress: undefined,
-      depositAmount: undefined,
-      depositCurrency: undefined,
     }))
     setStep('confirm')
   }
@@ -192,48 +198,57 @@ export function OfframpWidget({ onSuccess }: WidgetProps) {
     setTransferCreatedAt(undefined)
     setOrderState({})
     setStep('amount')
+    if (onError) onError(new Error('Transfer timed out'))
   }
 
   function handleSuccess(transferId: string) {
-    // Transaction finalized — clear session, delete recipient, reset to step 1
+    // Transaction finalized — clear session, delete recipient, reset to email verification
     clearSession()
     cleanupRecipient(orderState)
     setTransferCreatedAt(undefined)
     setOrderState({})
-    setStep('amount')
+    setStep('verify-email')
     if (onSuccess) onSuccess(transferId)
   }
 
 
   return (
     <div>
-      {/* Title above the card */}
-      <h1 className="mb-4 text-center text-2xl font-bold text-gray-900">Sell Coins Now</h1>
-
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl ring-1 ring-gray-200">
+      <div
+        className="w-full max-w-md rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl backdrop-saturate-150"
+        style={{
+          boxShadow: '0 0 0 1px rgba(239,82,0,0.35), inset 0 1px 0 rgba(255,255,255,0.7), 0 8px 32px rgba(0,0,0,0.12), 0 0 24px rgba(239,82,0,0.1)',
+        }}
+      >
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
             <img src="/mw.png" alt="Madhouse Wallet" className="h-8 w-8 rounded-lg object-contain" />
-            <span className="text-sm font-semibold text-gray-500">Madhouse Wallet</span>
+            <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Madhouse Wallet</span>
           </div>
-          <StepIndicator current={step} />
+          {step !== 'verify-email' && <StepIndicator current={step} />}
         </div>
 
         {/* Session expired banner */}
         {sessionExpired && (
-          <div className="mb-4 rounded-xl border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800">
+          <div className="mb-4 rounded-xl border border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/30 p-3 text-sm text-yellow-800 dark:text-yellow-300">
             Your session expired. Please start over.
           </div>
         )}
 
         {/* Step content */}
         <div>
+          {step === 'verify-email' && (
+            <EmailVerifyScreen onVerified={handleEmailVerified} />
+          )}
+
           {step === 'amount' && (
             <AmountStep
               initialState={orderState}
               onNext={handleAmountNext}
               onSessionExpired={() => handleSessionExpired(orderState)}
+              connectedEvmAddress={connectedEvmAddress}
+              connectedSolanaAddress={connectedSolanaAddress}
             />
           )}
 
@@ -261,6 +276,9 @@ export function OfframpWidget({ onSuccess }: WidgetProps) {
               onSuccess={handleSuccess}
               onBack={handleBackToConfirm}
               onTimeout={handleSendTimeout}
+              connectedEvmAddress={connectedEvmAddress}
+              connectedSolanaAddress={connectedSolanaAddress}
+              evmProvider={evmProvider}
             />
           )}
         </div>

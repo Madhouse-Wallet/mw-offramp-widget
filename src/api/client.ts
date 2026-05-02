@@ -1,6 +1,5 @@
 import type {
   QuoteResponse,
-  FeeResponse,
   AmountLimitsResponse,
   RequirementsResponse,
   RecipientResponse,
@@ -11,6 +10,8 @@ import type {
   TransferRecord,
   DepositOptionsResponse,
   DepositOption,
+  OtpSendResponse,
+  OtpVerifyResponse,
 } from '../types'
 import { encryptPayload, decryptPayload } from '../lib/payload-crypto'
 
@@ -36,21 +37,24 @@ interface TokenCache {
 
 let _tokenCache: TokenCache | null = null
 
-async function getWidgetToken(): Promise<string> {
+/**
+ * Called by OfframpWidget after a successful OTP verification to store
+ * the session JWT issued by /api/auth/verify-otp.
+ */
+export function setSessionToken(token: string, expiresIn: number): void {
+  _tokenCache = {
+    token,
+    expiresAt: Date.now() + expiresIn * 1000,
+  }
+}
+
+function getWidgetToken(): string {
   const now = Date.now()
   if (_tokenCache && _tokenCache.expiresAt - 60_000 > now) {
     return _tokenCache.token
   }
-  const res = await fetch('/api/auth/widget-token', { method: 'POST' })
-  if (!res.ok) {
-    throw Object.assign(new Error('Failed to obtain widget token'), { status: res.status })
-  }
-  const data = (await res.json()) as { token: string; expiresIn: number }
-  _tokenCache = {
-    token: data.token,
-    expiresAt: now + data.expiresIn * 1000,
-  }
-  return data.token
+  // No valid session — the user must complete OTP verification first
+  throw Object.assign(new Error('Session expired'), { status: 401 })
 }
 
 // ─── Encryption key cache ─────────────────────────────────────────────────────
@@ -102,7 +106,8 @@ async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const [token, encryptKey] = await Promise.all([getWidgetToken(), getEncryptKey()])
+  const token = getWidgetToken()
+  const encryptKey = await getEncryptKey()
 
   // Encrypt request body if present
   let body: string | undefined
@@ -222,10 +227,6 @@ export async function getDepositOptions(): Promise<DepositOption[]> {
   return resp.options ?? []
 }
 
-export async function getFee(): Promise<FeeResponse> {
-  return apiFetch<FeeResponse>('/api/proxy/payouts/fee')
-}
-
 export async function getAmountLimits(): Promise<AmountLimitsResponse> {
   return apiFetch<AmountLimitsResponse>('/api/proxy/payouts/amount-limits')
 }
@@ -326,4 +327,72 @@ export async function createTransfer(
     method: 'POST',
     body: JSON.stringify(payload),
   })
+}
+
+// ─── OTP auth functions ───────────────────────────────────────────────────────
+
+const OTP_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/**
+ * Sends a 6-digit OTP to the given email address.
+ * Returns a signed short-lived JWT that is passed back to verifyOtp.
+ * No widget JWT required — this is a pre-auth endpoint.
+ */
+export async function sendOtp(email: string, captchaToken: string | null): Promise<OtpSendResponse> {
+  if (!OTP_EMAIL_RE.test(email.trim())) {
+    throw new Error('Enter a valid email address')
+  }
+  const res = await fetch('/api/auth/send-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email.trim().toLowerCase(), captchaToken }),
+  })
+  const body = (await res.json()) as Record<string, unknown>
+  if (!res.ok) {
+    const err = new Error(
+      typeof body.error === 'string' ? body.error : 'Failed to send verification code',
+    )
+    ;(err as Error & { status: number; retryAfter?: number }).status = res.status
+    if (typeof body.retryAfter === 'number') {
+      ;(err as Error & { retryAfter: number }).retryAfter = body.retryAfter
+    }
+    throw err
+  }
+  return body as unknown as OtpSendResponse
+}
+
+/**
+ * Verifies a 6-digit OTP against the signed JWT from sendOtp.
+ * On success, returns a session JWT with audience "mw-widget-proxy".
+ * Call setSessionToken(sessionToken, expiresIn) after this to enable proxy calls.
+ * No widget JWT required — this is a pre-auth endpoint.
+ */
+export async function verifyOtp(
+  otpToken: string,
+  code: string,
+  email: string,
+  captchaToken: string | null,
+): Promise<OtpVerifyResponse> {
+  if (!/^\d{6}$/.test(code)) {
+    throw new Error('Enter a valid 6-digit code')
+  }
+  const res = await fetch('/api/auth/verify-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      otpToken,
+      code,
+      email: email.trim().toLowerCase(),
+      captchaToken,
+    }),
+  })
+  const body = (await res.json()) as Record<string, unknown>
+  if (!res.ok) {
+    const err = new Error(
+      typeof body.error === 'string' ? body.error : 'Verification failed',
+    )
+    ;(err as Error & { status: number }).status = res.status
+    throw err
+  }
+  return body as unknown as OtpVerifyResponse
 }

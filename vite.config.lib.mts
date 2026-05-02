@@ -3,6 +3,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js'
 
+const __dirname = import.meta.dirname
 export default defineConfig({
   plugins: [
     react(),
@@ -44,7 +45,7 @@ export default defineConfig({
       formats: ['es', 'umd'],
       fileName: (format) => `mw-offramp-widget.${format}.js`,
     },
-    rollupOptions: {
+    rolldownOptions: {
       // React is a peer dependency — don't bundle it.
       // ESM consumers must have react + react-dom in their own bundle.
       // UMD consumers must load React globally (window.React, window.ReactDOM).

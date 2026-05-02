@@ -248,9 +248,9 @@ export function RecipientStep({ orderState, onNext, onBack, onSessionExpired }: 
     if (field.type === 'radio' && field.valuesAllowed) {
       return (
         <div key={field.key} className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             {field.name}
-            {field.required && <span className="ml-1 text-orange-500">*</span>}
+            {field.required && <span className="ml-1 text-[#fe8714]">*</span>}
           </label>
           <div className="flex flex-wrap gap-3">
             {field.valuesAllowed.map((opt) => (
@@ -261,9 +261,9 @@ export function RecipientStep({ orderState, onNext, onBack, onSessionExpired }: 
                   value={opt.key}
                   checked={value === opt.key}
                   onChange={() => handleFieldChange(field, opt.key)}
-                  className="accent-orange-500"
+                  className="accent-[#fe8714]"
                 />
-                <span className="text-sm text-gray-700">{opt.name}</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">{opt.name}</span>
               </label>
             ))}
           </div>
@@ -291,19 +291,19 @@ export function RecipientStep({ orderState, onNext, onBack, onSessionExpired }: 
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">Recipient Details</h2>
-        <p className="mt-0.5 text-sm text-gray-500">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recipient Details</h2>
+        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
           Where should we send {currency}?
         </p>
       </div>
 
       {loadingReqs ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-sm text-gray-500">
+        <div className="flex items-center justify-center gap-2 py-8 text-sm text-gray-500 dark:text-gray-400">
           <Spinner size={18} />
           <span>Loading account fields…</span>
         </div>
       ) : reqError ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 dark:border-red-700/50 bg-red-50 dark:bg-red-900/30 p-4 text-sm text-red-700 dark:text-red-300">
           {reqError}
         </div>
       ) : (
@@ -330,7 +330,7 @@ export function RecipientStep({ orderState, onNext, onBack, onSessionExpired }: 
           />
 
           {refreshing && (
-            <div className="flex items-center gap-2 text-xs text-gray-400">
+            <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
               <Spinner size={12} />
               <span>Updating fields…</span>
             </div>
@@ -340,7 +340,7 @@ export function RecipientStep({ orderState, onNext, onBack, onSessionExpired }: 
           )}
 
           {submitError && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="rounded-xl border border-red-200 dark:border-red-700/50 bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-700 dark:text-red-300">
               {submitError}
             </div>
           )}

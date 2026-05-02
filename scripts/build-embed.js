@@ -54,7 +54,7 @@ const iframeSnippet = `<!-- Madhouse Wallet Offramp Widget -->
 <!-- Adjust width/height to suit your layout. -->
 <iframe
   src="${HOST}"
-  id="mw-offramp-widget"
+  id="bn-offramp-widget"
   title="Madhouse Wallet Offramp"
   width="480"
   height="720"
@@ -76,7 +76,7 @@ const loaderScript = `/**
  * Host: ${HOST}
  *
  * Usage:
- *   <div id="mw-offramp-root"></div>
+ *   <div id="bn-offramp-root"></div>
  *   <script src="widget-loader.js"></script>
  *
  * Options (set on window before loading the script, or pass as data-* attributes
@@ -84,7 +84,7 @@ const loaderScript = `/**
  *
  *   window.MWOfframpConfig = {
  *     host:        "${HOST}",      // where the widget app is hosted
- *     containerId: "mw-offramp-root",  // id of the mount element
+ *     containerId: "bn-offramp-root",  // id of the mount element
  *     width:       "480px",
  *     height:      "720px",
  *     borderRadius: "12px",
@@ -95,7 +95,7 @@ const loaderScript = `/**
 
   var cfg = window.MWOfframpConfig || {};
   var host = cfg.host || "${HOST}";
-  var containerId = cfg.containerId || "mw-offramp-root";
+  var containerId = cfg.containerId || "bn-offramp-root";
   var width = cfg.width || "480px";
   var height = cfg.height || "720px";
   var borderRadius = cfg.borderRadius || "12px";
@@ -103,13 +103,13 @@ const loaderScript = `/**
   function mount() {
     var container = document.getElementById(containerId);
     if (!container) {
-      console.warn("[MWOfframp] Container #" + containerId + " not found.");
+      console.warn("[BNOfframp] Container #" + containerId + " not found.");
       return;
     }
 
     var iframe = document.createElement("iframe");
     iframe.src = host;
-    iframe.id = "mw-offramp-frame";
+    iframe.id = "bn-offramp-frame";
     iframe.title = "Madhouse Wallet Offramp";
     iframe.setAttribute("allow", "clipboard-write");
     iframe.setAttribute("loading", "lazy");

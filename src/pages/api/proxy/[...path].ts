@@ -1,6 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { jwtVerify } from 'jose'
 import { hexToKey, encryptPayload, decryptPayload } from '../../../lib/payload-crypto'
+import { checkRateLimit } from '../../../lib/rate-limit'
+
+function getClientIp(req: NextApiRequest): string {
+  const forwarded = req.headers['x-forwarded-for']
+  if (typeof forwarded === 'string') return forwarded.split(',')[0].trim()
+  return req.socket.remoteAddress ?? 'unknown'
+}
 
 export const config = {
   api: { bodyParser: true },
@@ -63,6 +70,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const authorized = await verifyWidgetToken(req.headers.authorization)
   if (!authorized) {
     return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  // Rate limit — 120 requests per minute per IP
+  const ip = getClientIp(req)
+  const rl = checkRateLimit('proxy', ip, 120, 60_000, 60_000)
+  if (!rl.allowed) {
+    res.setHeader('Retry-After', String(rl.retryAfter ?? 60))
+    return res.status(429).json({ error: 'Too many requests', retryAfter: rl.retryAfter })
   }
 
   const pathParts = (req.query.path as string[]) ?? []

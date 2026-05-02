@@ -1,5 +1,5 @@
 {
-  "name": "mw-offramp-widget",
+  "name": "madhouse_widget",
   "version": "0.1.0",
   "description": "Madhouse Wallet crypto offramp widget",
   "scripts": {
@@ -10,12 +10,19 @@
     "build:lib": "node scripts/build-lib.js"
   },
   "dependencies": {
-    "@vercel/og": "^0.11.1",
+    "@aws-sdk/client-ses": "^3.0.0",
+    "@coinbase/wallet-sdk": "^4.3.7",
+    "@wallet-standard/app": "^1.1.0",
+    "@walletconnect/ethereum-provider": "^2.23.9",
     "jose": "^5.9.6",
-    "next": "^15.0.0",
+    "next": "^16.2.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-qr-code": "^2.0.18"
+  },
+  "overrides": {
+    "postcss": "^8.5.13",
+    "axios": "^1.15.0"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "^4.60.0",
@@ -25,12 +32,12 @@
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.7.0",
+    "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.47",
+    "postcss": "^8.5.13",
     "tailwindcss": "^3.4.14",
     "typescript": "^5.6.3",
-    "vite": "^5.4.21",
-    "vite-plugin-css-injected-by-js": "^4.0.1"
+    "vite": "^8.0.10",
+    "vite-plugin-css-injected-by-js": "^5.0.1"
   }
 }

@@ -84,9 +84,9 @@ export function CurrencySelect({ label, value, onChange, options, required, erro
   return (
     <div className="space-y-1" ref={containerRef} onKeyDown={handleKeyDown}>
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">
+        <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           {label}
-          {required && <span className="ml-1 text-orange-500">*</span>}
+          {required && <span className="ml-1 text-[#fe8714]">*</span>}
         </label>
       )}
 
@@ -97,14 +97,14 @@ export function CurrencySelect({ label, value, onChange, options, required, erro
         onClick={() => setOpen((o) => !o)}
         className={[
           'w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm text-left',
-          'bg-white text-gray-900',
-          'focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500',
+          'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100',
+          'focus:outline-none focus:ring-2 focus:ring-[#fa4536] focus:border-[#fa4536]',
           'transition-colors duration-150',
           error
             ? 'border-red-500'
             : open
-              ? 'border-orange-500 ring-2 ring-orange-500'
-              : 'border-gray-300 hover:border-gray-400',
+              ? 'border-[#fa4536] ring-2 ring-[#fa4536]'
+              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500',
         ].join(' ')}
       >
         {selected ? (
@@ -113,7 +113,7 @@ export function CurrencySelect({ label, value, onChange, options, required, erro
             <span className="flex-1 truncate">{selected.label}</span>
           </>
         ) : (
-          <span className="flex-1 text-gray-400">Select currency</span>
+          <span className="flex-1 text-gray-400 dark:text-gray-500">Select currency</span>
         )}
         {/* Chevron */}
         <svg
@@ -127,23 +127,23 @@ export function CurrencySelect({ label, value, onChange, options, required, erro
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 mt-1 w-56 rounded-xl border border-gray-200 bg-white shadow-xl ring-1 ring-black/5">
+        <div className="absolute z-50 mt-1 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl ring-1 ring-black/5 dark:ring-white/5">
           {/* Search */}
-          <div className="p-2 border-b border-gray-100">
+          <div className="p-2 border-b border-gray-100 dark:border-gray-700">
             <input
               ref={searchRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search…"
-              className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+              className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-2.5 py-1.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-[#fa4536] focus:outline-none focus:ring-1 focus:ring-[#fa4536]"
             />
           </div>
 
           {/* Options list */}
           <ul className="max-h-56 overflow-y-auto py-1" role="listbox">
             {filtered.length === 0 ? (
-              <li className="px-3 py-2 text-sm text-gray-400">No results</li>
+              <li className="px-3 py-2 text-sm text-gray-400 dark:text-gray-500">No results</li>
             ) : (
               filtered.map((opt) => (
                 <li
@@ -154,14 +154,14 @@ export function CurrencySelect({ label, value, onChange, options, required, erro
                   className={[
                     'flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer transition-colors',
                     opt.value === value
-                      ? 'bg-orange-50 text-orange-700 font-medium'
-                      : 'text-gray-800 hover:bg-gray-50',
+                      ? 'bg-orange-50 dark:bg-orange-900/30 text-[#ef5200] dark:text-[#fd754d] font-medium'
+                      : 'text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700',
                   ].join(' ')}
                 >
                   <span className="text-base leading-none w-5 text-center">{opt.flag}</span>
                   <span className="flex-1">{opt.label}</span>
                   {opt.value === value && (
-                    <svg className="h-3.5 w-3.5 text-orange-500" viewBox="0 0 20 20" fill="currentColor">
+                    <svg className="h-3.5 w-3.5 text-[#fe8714]" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   )}

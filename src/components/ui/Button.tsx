@@ -1,6 +1,6 @@
 import React from 'react'
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'ghost'
+type Variant = 'primary' | 'secondary' | 'danger'
 type Size = 'sm' | 'md' | 'lg'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -12,13 +12,11 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    'bg-orange-600 hover:bg-orange-500 text-white border border-orange-600 hover:border-orange-500 focus:ring-orange-500',
+    'bg-[#ef5200] hover:bg-[#fa4536] text-white border border-[#ef5200] hover:border-[#fa4536] focus:ring-[#fa4536]',
   secondary:
-    'bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-300 hover:border-gray-400 focus:ring-gray-500',
+    'bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-300 hover:border-gray-400 focus:ring-gray-500 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 dark:border-gray-600 dark:hover:border-gray-500',
   danger:
     'bg-red-700 hover:bg-red-600 text-white border border-red-700 hover:border-red-600 focus:ring-red-500',
-  ghost:
-    'bg-transparent hover:bg-gray-100 text-gray-600 hover:text-gray-900 border border-transparent hover:border-gray-200 focus:ring-gray-500',
 }
 
 const sizeClasses: Record<Size, string> = {
@@ -46,7 +44,7 @@ export function Button({
         'inline-flex items-center justify-center gap-2 font-medium rounded-lg',
         'transition-all duration-150',
         'focus:outline-none focus:ring-2 focus:ring-offset-2',
-        'focus:ring-offset-white',
+        'focus:ring-offset-white dark:focus:ring-offset-gray-900',
         variantClasses[variant],
         sizeClasses[size],
         fullWidth ? 'w-full' : '',

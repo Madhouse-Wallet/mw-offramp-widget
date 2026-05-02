@@ -1,11 +1,13 @@
 import { Html, Head, Main, NextScript } from 'next/document'
 
-const GTM_ID = 'GTM-TSN966DB'
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID ?? ''
 
 export default function Document() {
   return (
     <Html lang="en">
-      <Head />
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
       <body>
         {/* Google Tag Manager (noscript) */}
         <noscript>

@@ -32,12 +32,41 @@ interface SummaryRowProps {
 function SummaryRow({ label, value, highlight = false }: SummaryRowProps) {
   return (
     <div className="flex items-start justify-between gap-4 px-4 py-2.5 text-sm">
-      <span className="text-gray-500">{label}</span>
-      <span className={`text-right font-medium ${highlight ? 'text-orange-600' : 'text-gray-900'}`}>
+      <span className="text-gray-500 dark:text-gray-400">{label}</span>
+      <span className={`text-right font-medium ${highlight ? 'text-[#ef5200]' : 'text-gray-900 dark:text-gray-100'}`}>
         {value}
       </span>
     </div>
   )
+}
+
+// Fields that are structural/internal and should not be shown to the user
+const HIDDEN_DETAIL_KEYS = new Set(['legalType', 'address'])
+
+// camelCase / PascalCase → "Human Label"
+function prettifyKey(key: string): string {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (c) => c.toUpperCase())
+    .trim()
+}
+
+// Mask sensitive fields — show only last 4 chars padded with bullets
+function maskValue(key: string, value: string): string {
+  const sensitive = /account|iban|rtn|abartn|bsb|clabe|cnaps|ifsc/i.test(key)
+  if (sensitive && value.length > 4) {
+    return `••••${value.slice(-4)}`
+  }
+  return value
+}
+
+function formatDetails(details: Record<string, unknown>): Array<{ label: string; value: string }> {
+  return Object.entries(details)
+    .filter(([k, v]) => !HIDDEN_DETAIL_KEYS.has(k) && typeof v === 'string' && v.trim() !== '')
+    .map(([k, v]) => ({
+      label: prettifyKey(k),
+      value: maskValue(k, v as string),
+    }))
 }
 
 export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: ConfirmStepProps) {
@@ -52,11 +81,14 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
     recipientId,
     recipientName,
     recipientType,
+    recipientDetails,
     sourceToken,
     sourceNetwork,
     userEmail,
     walletAddress,
   } = orderState
+
+  const formattedDetails = recipientDetails ? formatDetails(recipientDetails) : []
 
   const delivery = formatDelivery(quote?.quote.estimatedDelivery)
 
@@ -114,13 +146,13 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">Review Order</h2>
-        <p className="mt-0.5 text-sm text-gray-500">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Review Order</h2>
+        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
           Confirm the details before sending.
         </p>
       </div>
 
-      <div className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-gray-50">
+      <div className="divide-y divide-gray-100 dark:divide-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <SummaryRow label="You send" value={`$${floorTwo(amount)} USD`} />
 
         {quote && (
@@ -150,9 +182,14 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
             value={
               <span>
                 <span className="block">{recipientName}</span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-400 dark:text-gray-500">
                   {currency} · {recipientType}
                 </span>
+                {formattedDetails.map((d) => (
+                  <span key={d.label} className="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">
+                    {d.label}: {d.value}
+                  </span>
+                ))}
               </span>
             }
           />
@@ -170,7 +207,7 @@ export function ConfirmStep({ orderState, onNext, onBack, onSessionExpired }: Co
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 dark:border-red-700/50 bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-700 dark:text-red-300">
           {error}
         </div>
       )}

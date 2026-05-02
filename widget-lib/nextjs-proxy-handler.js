@@ -44,6 +44,7 @@ const ALLOWED_PATH_PREFIXES = [
   'payouts/recipients',
   'payouts/account-requirements',
   'payouts/deposit-options',
+  'payouts/amount-limits',
   'payouts/fee',
 ]
 

@@ -22,18 +22,17 @@ export function StepIndicator({ current }: StepIndicatorProps) {
       {STEPS.map((step, index) => {
         const isCompleted = index < currentIndex
         const isCurrent = index === currentIndex
-        const isUpcoming = index > currentIndex
 
         return (
           <React.Fragment key={step.id}>
             <div className="flex flex-col items-center gap-1">
               <div
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                className={`flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
                   isCompleted
-                    ? 'bg-orange-600 text-white'
+                    ? 'bg-[#ef5200] text-white'
                     : isCurrent
-                      ? 'border-2 border-orange-500 bg-white text-orange-600'
-                      : 'border-2 border-gray-300 bg-white text-gray-400'
+                      ? 'border-2 border-[#ef5200] bg-white dark:bg-gray-900 text-[#ef5200]'
+                      : 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-400 dark:text-gray-500'
                 }`}
               >
                 {isCompleted ? (
@@ -49,8 +48,8 @@ export function StepIndicator({ current }: StepIndicatorProps) {
                 )}
               </div>
               <span
-                className={`text-xs font-medium ${
-                  isCurrent ? 'text-orange-600' : isCompleted ? 'text-gray-500' : 'text-gray-400'
+                className={`text-[10px] sm:text-xs font-medium ${
+                  isCurrent ? 'text-[#ef5200]' : isCompleted ? 'text-gray-500 dark:text-gray-400' : 'text-gray-400 dark:text-gray-500'
                 }`}
               >
                 {step.label}
@@ -59,8 +58,8 @@ export function StepIndicator({ current }: StepIndicatorProps) {
 
             {index < STEPS.length - 1 && (
               <div
-                className={`mb-5 h-0.5 flex-1 mx-2 transition-all ${
-                  isCompleted ? 'bg-orange-500' : 'bg-gray-200'
+                className={`mb-5 h-0.5 flex-1 mx-1 sm:mx-2 transition-all ${
+                  isCompleted ? 'bg-[#fd754d]' : 'bg-gray-200 dark:bg-gray-700'
                 }`}
               />
             )}
@@ -70,6 +69,3 @@ export function StepIndicator({ current }: StepIndicatorProps) {
     </div>
   )
 }
-
-export { STEP_ORDER }
-export type { Step }

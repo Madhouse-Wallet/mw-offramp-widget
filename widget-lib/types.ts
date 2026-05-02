@@ -1,13 +1,11 @@
 // Re-export all types from the main source — single source of truth.
 export type {
   WidgetProps,
-  WidgetConfig,
   Step,
   OrderState,
   DepositOption,
   DepositOptionsResponse,
   QuoteResponse,
-  FeeResponse,
   AmountLimitsResponse,
   TransferQuoteSnapshot,
   RequirementsField,
@@ -21,4 +19,6 @@ export type {
   RecipientSnapshot,
   TransferRecord,
   TransferStatusResponse,
+  OtpSendResponse,
+  OtpVerifyResponse,
 } from '../src/types'

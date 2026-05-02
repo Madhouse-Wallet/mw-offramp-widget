@@ -166,7 +166,7 @@ Host `dist-lib/mw-offramp-widget.umd.js` on your CDN or static server. React and
 
 ---
 
-## 4. Usage
+## 5. Usage
 
 ### React app (ESM)
 
@@ -214,7 +214,7 @@ export function CheckoutPage() {
 
 ---
 
-## 5. `configureClient` options
+## 6. `configureClient` options
 
 ```ts
 configureClient({
@@ -238,7 +238,7 @@ configureClient({
 
 ---
 
-## 6. `mountWidget` reference
+## 7. `mountWidget` reference
 
 ```ts
 const unmount = mountWidget(
@@ -254,7 +254,7 @@ unmount()  // tears down the widget and cleans up
 
 ---
 
-## 7. Sizing
+## 8. Sizing
 
 The widget card is `max-w-md` (~448 px) wide and expands vertically with content:
 
@@ -267,7 +267,7 @@ The widget card is `max-w-md` (~448 px) wide and expands vertically with content
 
 ---
 
-## 8. Security
+## 9. Security
 
 - `WIDGET_API_KEY` and `WIDGET_USER_ID` live only in the proxy process — never in the browser bundle.
 - The proxy enforces a strict path allowlist so only the ten endpoints the widget needs are reachable upstream.
