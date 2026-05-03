@@ -1,5 +1,6 @@
 import type { AppProps } from 'next/app'
 import Head from 'next/head'
+import Script from 'next/script'
 import '@/styles/globals.css'
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID ?? ''
@@ -55,8 +56,13 @@ export default function App({ Component, pageProps }: AppProps) {
         <meta name="twitter:image" content={OG_IMAGE} />
         <meta name="twitter:image:alt" content="Madhouse Wallet crypto offramp — sell USDC to local currency" />
 
-        {/* ── Google Tag Manager ─────────────────────────────────────────── */}
-        <script
+      </Head>
+
+      {/* ── Google Tag Manager ─────────────────────────────────────────── */}
+      {GTM_ID && (
+        <Script
+          id="gtm"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -65,36 +71,38 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 })(window,document,'script','dataLayer','${GTM_ID}');`,
           }}
         />
+      )}
 
-        {/* ── Google Analytics 4 ─────────────────────────────────────────── */}
-        {GA_ID && (
-          <>
-            <script
-              async
-              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-            />
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `
-                  window.dataLayer = window.dataLayer || [];
-                  function gtag(){dataLayer.push(arguments);}
-                  gtag('js', new Date());
-                  gtag('config', '${GA_ID}', { page_path: window.location.pathname });
-                `,
-              }}
-            />
-          </>
-        )}
-
-        {/* ── reCAPTCHA ──────────────────────────────────────────────────── */}
-        {siteKey && (
-          <script
-            src={`https://www.google.com/recaptcha/api.js?render=${siteKey}`}
-            async
-            defer
+      {/* ── Google Analytics 4 ─────────────────────────────────────────── */}
+      {GA_ID && (
+        <>
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+            strategy="afterInteractive"
           />
-        )}
-      </Head>
+          <Script
+            id="ga4"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_ID}', { page_path: window.location.pathname });
+              `,
+            }}
+          />
+        </>
+      )}
+
+      {/* ── reCAPTCHA ──────────────────────────────────────────────────── */}
+      {siteKey && (
+        <Script
+          src={`https://www.google.com/recaptcha/api.js?render=${siteKey}`}
+          strategy="afterInteractive"
+        />
+      )}
+
       <Component {...pageProps} />
     </>
   )

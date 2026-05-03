@@ -5,9 +5,7 @@ const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID ?? ''
 export default function Document() {
   return (
     <Html lang="en">
-      <Head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+      <Head />
       <body>
         {/* Google Tag Manager (noscript) */}
         <noscript>

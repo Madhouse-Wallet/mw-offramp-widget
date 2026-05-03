@@ -41,7 +41,7 @@ cp .env.example .env
 | `WIDGET_ENCRYPT_SECRET` | Server | Yes | 32-byte hex secret for AES-256-GCM payload encryption. Generate: `node scripts/gen-secrets.js` |
 | `WIDGET_API_BASE_URL` | Server | No | Override upstream API base URL. Defaults to `https://business.madhousewallet.com`. Staging/local only. |
 | `RECAPTCHA_SECRET_KEY` | Server | No | reCAPTCHA v3 server-side secret key for token verification. |
-| `AWS_REGION` | Server | Yes | AWS region for Amazon SES (e.g. `us-east-1`). Credentials are provided via IAM role — no static keys needed. |
+| `REGION` | Server | Yes | AWS region for Amazon SES (e.g. `us-east-1`). Credentials are provided via IAM role — no static keys needed. |
 | `SES_FROM_ADDRESS` | Server | Yes | Verified sender address in your AWS SES account (e.g. `noreply@yourdomain.com`). Verify at the [SES console](https://console.aws.amazon.com/ses). |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Browser | Yes | WalletConnect v2 project ID. Obtain from [cloud.walletconnect.com](https://cloud.walletconnect.com). |
 | `NEXT_PUBLIC_SITE_URL` | Browser | Yes | Canonical site URL for JSON-LD and OG tags. |

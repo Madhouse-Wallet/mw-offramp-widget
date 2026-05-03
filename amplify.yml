@@ -18,7 +18,7 @@ frontend:
         - env | grep -e NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID >> .env.production || true
         - env | grep -e NEXT_PUBLIC_GTM_ID >> .env.production || true
         - env | grep -e WIDGET_API_BASE_URL >> .env.production || true
-        - env | grep -e AWS_REGION >> .env.production || true
+        - env | grep -e REGION >> .env.production || true
         - env | grep -e SES_FROM_ADDRESS >> .env.production || true
         - npm run build
   artifacts:

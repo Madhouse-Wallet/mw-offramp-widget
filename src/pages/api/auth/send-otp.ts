@@ -20,7 +20,7 @@ import { SignJWT } from 'jose'
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
 import { checkRateLimit } from '../../../lib/rate-limit'
 
-const ses = new SESClient({ region: process.env.AWS_REGION ?? 'us-east-1' })
+const ses = new SESClient({ region: process.env.REGION ?? 'us-east-1' })
 
 function getClientIp(req: NextApiRequest): string {
   const forwarded = req.headers['x-forwarded-for']

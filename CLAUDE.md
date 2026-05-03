@@ -75,7 +75,7 @@ Recipient is created at the end of step 2 and deleted automatically on:
 | `WIDGET_ENCRYPT_SECRET` | Server only | Yes | 32-byte hex secret for AES-256-GCM payload encryption between browser and proxy. Generate: `node scripts/gen-secrets.js` |
 | `WIDGET_API_BASE_URL` | Server only | No | Override upstream API base URL. Defaults to `https://business.madhousewallet.com`. Only needed for staging/local. |
 | `RECAPTCHA_SECRET_KEY` | Server only | No | reCAPTCHA v3 server-side secret key for token verification. |
-| `AWS_REGION` | Server only | Yes | AWS region for Amazon SES (e.g. `us-east-1`). Credentials are provided via the Amplify IAM role — no static keys needed. |
+| `REGION` | Server only | Yes | AWS region for Amazon SES (e.g. `us-east-1`). Credentials are provided via the Amplify IAM role — no static keys needed. |
 | `SES_FROM_ADDRESS` | Server only | Yes | Verified sender address in your AWS SES account (e.g. `noreply@yourdomain.com`). Verify at `console.aws.amazon.com/ses`. |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Browser | Yes | WalletConnect v2 project ID. Obtain from `cloud.walletconnect.com`. Required for the WalletConnect modal. |
 | `NEXT_PUBLIC_SITE_URL` | Browser | Yes | Canonical site URL used for JSON-LD, OG tags, and the sitemap. |
