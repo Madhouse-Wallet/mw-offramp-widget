@@ -14,6 +14,7 @@ import type {
   AccountType,
   RequirementsField,
 } from '../../types'
+import { COUNTRIES, isCountryKey, isValidCountryCode } from '../../data/countries'
 
 const DEFAULT_TRANSFER_PURPOSE = 'verification.transfers.purpose.pay.bills'
 
@@ -146,6 +147,12 @@ export function RecipientStep({ orderState, onNext, onBack, onSessionExpired }: 
           errors[field.key] = `${field.name} is required`
           continue
         }
+        if (val && isCountryKey(field.key)) {
+          if (!isValidCountryCode(val)) {
+            errors[field.key] = `${field.name} must be a valid ISO country code`
+          }
+          continue
+        }
         if (val && field.validationRegexp) {
           try {
             const re = new RegExp(field.validationRegexp)
@@ -213,6 +220,28 @@ export function RecipientStep({ orderState, onNext, onBack, onSessionExpired }: 
     const value = fieldValues[field.key] ?? ''
     const error = fieldErrors[field.key]
 
+    // Country fields: always render our full ISO-2 dropdown, regardless of
+    // whether the server returned a `valuesAllowed` list. The submitted value
+    // is the ISO 3166-1 alpha-2 code (e.g. "US"), the label is the friendly
+    // English name (e.g. "United States").
+    if (isCountryKey(field.key)) {
+      return (
+        <CurrencySelect
+          key={field.key}
+          label={field.name}
+          value={value}
+          onChange={(val) => handleFieldChange(field, val)}
+          options={COUNTRIES.map((c) => ({
+            value: c.code,
+            label: c.name,
+            flag: countryFlag(c.code) ?? '🌐',
+          }))}
+          error={error}
+          required={field.required}
+        />
+      )
+    }
+
     if (field.type === 'select' && field.valuesAllowed) {
       const keys = field.valuesAllowed.map((v) => v.key)
       if (isCountryField(keys)) {
@@ -239,6 +268,21 @@ export function RecipientStep({ orderState, onNext, onBack, onSessionExpired }: 
           value={value}
           onChange={(e) => handleFieldChange(field, e.target.value)}
           options={field.valuesAllowed.map((v) => ({ value: v.key, label: v.name }))}
+          error={error}
+          required={field.required}
+        />
+      )
+    }
+
+    if (field.type === 'date') {
+      return (
+        <Input
+          key={field.key}
+          label={field.name}
+          type="date"
+          value={value}
+          onChange={(e) => handleFieldChange(field, e.target.value)}
+          placeholder={field.example ?? ''}
           error={error}
           required={field.required}
         />

@@ -55,7 +55,7 @@ async function verifyWidgetToken(authHeader: string | undefined): Promise<boolea
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // CORS — allow any origin so the widget can be embedded anywhere
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   if (req.method === 'OPTIONS') return res.status(200).end()
 

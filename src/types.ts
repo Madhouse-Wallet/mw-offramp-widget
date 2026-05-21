@@ -107,7 +107,7 @@ export interface TransferQuoteSnapshot {
 export interface RequirementsField {
   key: string
   name: string
-  type: 'text' | 'select' | 'radio'
+  type: 'text' | 'select' | 'radio' | 'date'
   required: boolean
   refreshRequirementsOnChange: boolean
   minLength?: number
@@ -138,6 +138,7 @@ export interface RecipientResponse {
   id: number
   accountHolderName: string
   currency: string
+  country: string | null
   type: string
   active: boolean
   details: Record<string, unknown>
