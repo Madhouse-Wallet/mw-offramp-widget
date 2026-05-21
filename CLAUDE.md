@@ -68,6 +68,7 @@ Recipient is created at the end of step 2 and deleted automatically on:
 | `WIDGET_API_KEY` | Server only | Yes | Madhouse Wallet API key (`mw_live_...`). Forwarded as `Authorization: Bearer` to the upstream API. Obtain from `business.madhousewallet.com/developers`. |
 | `WIDGET_JWT_SECRET` | Server only | Yes | Min 32-char secret for signing short-lived widget JWTs. Prevents external callers from using the proxy. Generate: `node scripts/gen-secrets.js` |
 | `WIDGET_ENCRYPT_SECRET` | Server only | Yes | 32-byte hex secret for AES-256-GCM payload encryption between browser and proxy. Generate: `node scripts/gen-secrets.js` |
+| `WIDGET_USER_ID` | Server only | Yes | Your account user ID (`usr_...`). Injected server-side into recipient-create and transfer requests. Found on `business.madhousewallet.com/developers`. |
 | `WIDGET_API_BASE_URL` | Server only | No | Override upstream API base URL. Defaults to `https://business.madhousewallet.com`. Only needed for staging/local. |
 
 **Never prefix these with `NEXT_PUBLIC_`** — they must stay server-side.
